@@ -1,0 +1,9 @@
+torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+transformers>=4.44.0
+accelerate
+bitsandbytes
+fastapi
+uvicorn
+python-multipart
+soundfile
+librosa

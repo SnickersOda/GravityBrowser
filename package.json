@@ -1,0 +1,56 @@
+{
+    "name": "gravity",
+    "productName": "Gravity",
+    "version": "1.0.0",
+    "description": "Gravity — Fast, Dark, Minimal Web Browser",
+    "main": "main.js",
+    "scripts": {
+        "start": "chcp 65001 >nul && cmd /c \"(set ELECTRON_RUN_AS_NODE=) & electron .\"",
+        "dev": "chcp 65001 >nul && cmd /c \"(set ELECTRON_RUN_AS_NODE=) & electron . --dev\"",
+        "build": "electron-builder --win"
+    },
+    "build": {
+        "appId": "com.gravity.browser",
+        "productName": "Gravity",
+        "directories": {
+            "output": "dist"
+        },
+        "win": {
+            "target": [
+                {
+                    "target": "portable",
+                    "arch": [
+                        "x64"
+                    ]
+                }
+            ],
+            "icon": "icon_black.png"
+        },
+        "files": [
+            "main.js",
+            "preload.js",
+            "google_preload.js",
+            "src/**/*",
+            "GRAVITY LOGO/**/*",
+            "icon_black.png",
+            ".env",
+            "node_modules/**/*"
+        ],
+        "extraResources": [],
+        "asar": true,
+        "portable": {
+            "artifactName": "Gravity-${version}.exe"
+        }
+    },
+    "author": "Gravity Team",
+    "license": "MIT",
+    "devDependencies": {
+        "electron": "^30.5.1",
+        "electron-builder": "^25.1.8"
+    },
+    "dependencies": {
+        "better-sqlite3": "^11.9.0",
+        "msedge-tts": "^2.0.4",
+        "ws": "^8.19.0"
+    }
+}

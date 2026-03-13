@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Добро пожаловать — Gravity</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            font-family: 'Inter', sans-serif;
+            background: #0a0a0a;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* Animated background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(ellipse at 30% 50%, rgba(120, 80, 255, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 50%, rgba(255, 60, 120, 0.06) 0%, transparent 50%);
+            animation: bgShift 15s ease-in-out infinite;
+            z-index: 0;
+        }
+
+        @keyframes bgShift {
+
+            0%,
+            100% {
+                transform: translate(0, 0);
+            }
+
+            50% {
+                transform: translate(-3%, 2%);
+            }
+        }
+
+        .wizard {
+            position: relative;
+            z-index: 1;
+            width: 520px;
+            text-align: center;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            margin: 0 auto 24px;
+            animation: logoPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes logoPulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.7) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-bottom: 40px;
+        }
+
+        /* Steps */
+        .step {
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .step.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Browser cards */
+        .browser-cards {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            margin-bottom: 32px;
+        }
+
+        .browser-card {
+            width: 150px;
+            padding: 24px 16px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.25s;
+            text-align: center;
+        }
+
+        .browser-card:hover {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .browser-card.selected {
+            border-color: #7c5cff;
+            background: rgba(124, 92, 255, 0.1);
+            box-shadow: 0 0 20px rgba(124, 92, 255, 0.15);
+        }
+
+        .browser-icon {
+            font-size: 40px;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .browser-name {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .browser-status {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.3);
+            margin-top: 6px;
+        }
+
+        .browser-status.found {
+            color: #4ade80;
+        }
+
+        /* Checkboxes */
+        .import-options {
+            text-align: left;
+            margin: 0 auto 32px;
+            max-width: 320px;
+        }
+
+        .import-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .import-option:hover {
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .import-option input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #7c5cff;
+            cursor: pointer;
+        }
+
+        .import-option label {
+            font-size: 14px;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .import-option .count {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Buttons */
+        .btn-primary {
+            padding: 14px 40px;
+            background: linear-gradient(135deg, #7c5cff, #5b3fd4);
+            border: none;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 200px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 24px rgba(124, 92, 255, 0.3);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-skip {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 13px;
+            font-family: inherit;
+            cursor: pointer;
+            margin-top: 16px;
+            padding: 8px 16px;
+            transition: color 0.2s;
+        }
+
+        .btn-skip:hover {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* Progress */
+        .progress-container {
+            margin: 32px auto;
+            max-width: 350px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #7c5cff, #a78bfa);
+            border-radius: 3px;
+            transition: width 0.5s ease;
+            width: 0%;
+        }
+
+        .progress-text {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 12px;
+        }
+
+        /* Done */
+        .done-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            from {
+                transform: scale(0);
+            }
+
+            to {
+                transform: scale(1);
+            }
+        }
+
+        .done-stats {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-bottom: 32px;
+            line-height: 1.8;
+        }
+
+        .done-stats span {
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 600;
+        }
+
+        /* Title bar drag */
+        .drag-region {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 32px;
+            -webkit-app-region: drag;
+            z-index: 100;
+        }
+
+        .window-controls {
+            position: fixed;
+            top: 0;
+            right: 0;
+            display: flex;
+            -webkit-app-region: no-drag;
+            z-index: 101;
+        }
+
+        .window-btn {
+            width: 46px;
+            height: 32px;
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+
+        .window-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .window-btn-close:hover {
+            background: #e81123;
+            color: #fff;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="drag-region"></div>
+    <div class="window-controls">
+        <button class="window-btn" id="btn-minimize">
+            <svg width="12" height="12" viewBox="0 0 12 12">
+                <path d="M2 6h8" stroke="currentColor" stroke-width="1.2" />
+            </svg>
+        </button>
+        <button class="window-btn window-btn-close" id="btn-close">
+            <svg width="12" height="12" viewBox="0 0 12 12">
+                <path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
+            </svg>
+        </button>
+    </div>
+
+    <div class="wizard">
+        <img src="../GRAVITY LOGO/7.png" alt="Gravity" class="logo">
+        <h1>Добро пожаловать в GRAVITY</h1>
+        <p class="subtitle">Перенеси данные из другого браузера за секунды</p>
+
+        <!-- Step 1: Choose browser -->
+        <div class="step active" id="step-choose">
+            <div class="browser-cards" id="browser-cards">
+                <!-- Filled by JS -->
+            </div>
+            <button class="btn-primary" id="btn-import" disabled>Импортировать</button>
+            <br>
+            <button class="btn-skip" id="btn-skip">Пропустить</button>
+        </div>
+
+        <!-- Step 2: Importing -->
+        <div class="step" id="step-importing">
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <div class="progress-text" id="progress-text">Импортирую закладки...</div>
+            </div>
+        </div>
+
+        <!-- Step 3: Done -->
+        <div class="step" id="step-done">
+            <div class="done-icon">✅</div>
+            <h1>Готово!</h1>
+            <div class="done-stats" id="done-stats"></div>
+            <button class="btn-primary" id="btn-start">Начать работу</button>
+        </div>
+    </div>
+
+    <script>
+        let selectedBrowser = null;
+        const browserCards = document.getElementById('browser-cards');
+        const btnImport = document.getElementById('btn-import');
+        const btnSkip = document.getElementById('btn-skip');
+        const btnStart = document.getElementById('btn-start');
+
+        // Detect available browsers
+        async function init() {
+            const browsers = await window.gravity.import.detect();
+
+            const icons = { chrome: '🌐', yandex: '🔍' };
+            const names = { chrome: 'Google Chrome', yandex: 'Яндекс Браузер' };
+
+            for (const [id, info] of Object.entries(browsers)) {
+                const card = document.createElement('div');
+                card.className = 'browser-card';
+                card.dataset.browser = id;
+
+                const found = info.exists;
+                card.innerHTML = `
+                    <span class="browser-icon">${icons[id] || '🌐'}</span>
+                    <div class="browser-name">${names[id] || id}</div>
+                    <div class="browser-status ${found ? 'found' : ''}">${found ? '✓ Найден' : 'Не найден'}</div>
+                `;
+
+                if (found) {
+                    card.addEventListener('click', () => {
+                        document.querySelectorAll('.browser-card').forEach(c => c.classList.remove('selected'));
+                        card.classList.add('selected');
+                        selectedBrowser = id;
+                        btnImport.disabled = false;
+                    });
+                } else {
+                    card.style.opacity = '0.35';
+                    card.style.cursor = 'default';
+                }
+
+                browserCards.appendChild(card);
+            }
+        }
+
+        function showStep(id) {
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        function updateProgress(pct, text) {
+            document.getElementById('progress-fill').style.width = pct + '%';
+            document.getElementById('progress-text').textContent = text;
+        }
+
+        btnImport.addEventListener('click', async () => {
+            if (!selectedBrowser) return;
+            showStep('step-importing');
+
+            let bookmarks = 0, history = 0;
+
+            try {
+                // Import bookmarks
+                updateProgress(20, 'Импортирую закладки...');
+                const bResult = await window.gravity.import.bookmarks(selectedBrowser);
+                bookmarks = bResult.count || 0;
+
+                // Import history
+                updateProgress(60, 'Импортирую историю...');
+                const hResult = await window.gravity.import.history(selectedBrowser);
+                history = hResult.count || 0;
+
+                updateProgress(100, 'Завершено!');
+            } catch (e) {
+                console.error('Import error:', e);
+            }
+
+            // Mark first run done
+            await window.gravity.import.done();
+
+            setTimeout(() => {
+                showStep('step-done');
+                const stats = [];
+                if (bookmarks > 0) stats.push(`<span>${bookmarks}</span> закладок`);
+                if (history > 0) stats.push(`<span>${history}</span> записей истории`);
+                document.getElementById('done-stats').innerHTML =
+                    stats.length > 0 ? 'Импортировано: ' + stats.join(', ') : 'Ничего не найдено для импорта';
+            }, 600);
+        });
+
+        btnSkip.addEventListener('click', async () => {
+            await window.gravity.import.done();
+            window.gravity.import.close();
+        });
+
+        btnStart.addEventListener('click', () => {
+            window.gravity.import.close();
+        });
+
+        // Window controls
+        document.getElementById('btn-minimize').addEventListener('click', () => {
+            window.gravity.import.minimize();
+        });
+        document.getElementById('btn-close').addEventListener('click', () => {
+            window.gravity.import.close();
+        });
+
+        init();
+    </script>
+</body>
+
+</html>

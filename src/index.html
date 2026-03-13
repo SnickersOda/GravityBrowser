@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gravity</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <div id="intro-overlay" class="intro-overlay" style="display:none"></div>
+    <button id="intro-skip" style="display:none"></button>
+
+    <!-- ============ TOAST CONTAINER ============ -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- ============ BROWSER SHELL ============ -->
+    <div id="browser-shell" class="browser-shell">
+
+        <!-- === TITLE BAR === -->
+        <div id="titlebar" class="titlebar">
+            <!-- Logo -->
+            <div class="titlebar-logo" id="titlebar-logo" title="Gravity">
+                <img src="../GRAVITY LOGO/7.png" alt="G" class="logo-img">
+            </div>
+
+            <!-- Tab Counter -->
+            <div class="tab-counter" id="tab-counter" title="Открытых вкладок">1</div>
+
+            <!-- Tabs Container -->
+            <div id="tab-strip" class="tab-strip">
+                <div id="tabs-container" class="tabs-container">
+                    <!-- Tabs injected by JS -->
+                </div>
+                <!-- + button right after tabs -->
+                <button id="btn-new-tab" class="btn-new-tab" title="Новая вкладка (Ctrl+T)">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                        <path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Window Controls -->
+            <div class="window-controls">
+                <button id="btn-minimize" class="window-btn" title="Свернуть">
+                    <svg width="12" height="12" viewBox="0 0 12 12">
+                        <path d="M2 6h8" stroke="currentColor" stroke-width="1.2" />
+                    </svg>
+                </button>
+                <button id="btn-maximize" class="window-btn" title="Развернуть">
+                    <svg width="12" height="12" viewBox="0 0 12 12">
+                        <rect x="2" y="2" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.2"
+                            fill="none" />
+                    </svg>
+                </button>
+                <button id="btn-close" class="window-btn window-btn-close" title="Закрыть">
+                    <svg width="12" height="12" viewBox="0 0 12 12">
+                        <path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Fullscreen menu toggle button (only visible in fullscreen) -->
+        <button id="btn-fs-toggle" class="fs-toggle-btn" title="Скрыть/показать меню">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round">
+                <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+        </button>
+
+        <!-- === NAVIGATION BAR === -->
+        <div id="navbar" class="navbar">
+            <!-- Sidebar Toggle -->
+            <button id="btn-sidebar" class="nav-btn" title="Боковая панель">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <rect x="1.5" y="2" width="13" height="12" rx="2" stroke="currentColor" stroke-width="1.2"
+                        fill="none" />
+                    <path d="M5.5 2v12" stroke="currentColor" stroke-width="1.2" />
+                </svg>
+            </button>
+
+            <!-- Navigation Buttons -->
+            <div class="nav-buttons">
+                <button id="btn-back" class="nav-btn" title="Назад (Alt+←)" disabled>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
+                </button>
+                <button id="btn-forward" class="nav-btn" title="Вперёд (Alt+→)" disabled>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
+                </button>
+                <button id="btn-reload" class="nav-btn" title="Перезагрузить (Ctrl+R)">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M13.5 8a5.5 5.5 0 11-1.6-3.9" stroke="currentColor" stroke-width="1.5"
+                            stroke-linecap="round" />
+                        <path d="M13.5 2v4h-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
+                </button>
+                <button id="btn-home" class="nav-btn" title="Домой">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M2 8l6-5.5L14 8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                        <path d="M4 7v5.5a1 1 0 001 1h6a1 1 0 001-1V7" stroke="currentColor" stroke-width="1.3"
+                            stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- URL Bar -->
+            <div id="url-bar-container" class="url-bar-container">
+                <div class="url-security-icon" id="security-icon" title="Соединение">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                        <rect x="3" y="6" width="8" height="6" rx="1.5" stroke="currentColor" stroke-width="1.2"
+                            fill="none" />
+                        <path d="M5 6V4.5a2 2 0 014 0V6" stroke="currentColor" stroke-width="1.2"
+                            stroke-linecap="round" />
+                    </svg>
+                </div>
+                <input type="text" id="url-input" class="url-input" placeholder="Введите адрес или поисковый запрос"
+                    spellcheck="false" autocomplete="off">
+                <!-- URL autocomplete dropdown -->
+                <div id="url-autocomplete" class="url-autocomplete" style="display:none"></div>
+                <div class="url-actions">
+                    <!-- Page load time -->
+                    <span id="page-load-time" class="page-load-time" style="display:none">0ms</span>
+                    <!-- Copy URL -->
+                    <button id="url-copy" class="url-action-btn" title="Копировать URL">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                            <rect x="4" y="4" width="7" height="7" rx="1.2" stroke="currentColor" stroke-width="1.1"
+                                fill="none" />
+                            <path d="M3 10V3.5A.5.5 0 013.5 3H10" stroke="currentColor" stroke-width="1.1"
+                                stroke-linecap="round" />
+                        </svg>
+                    </button>
+                    <!-- QR Code -->
+                    <button id="url-qr" class="url-action-btn" title="QR-код страницы">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                            <rect x="1" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1"
+                                fill="none" />
+                            <rect x="8" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1"
+                                fill="none" />
+                            <rect x="1" y="8" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1"
+                                fill="none" />
+                            <rect x="9" y="9" width="3" height="3" rx="0.5" stroke="currentColor" stroke-width="1"
+                                fill="none" />
+                        </svg>
+                    </button>
+                    <!-- Bookmark -->
+                    <button id="url-bookmark" class="url-action-btn" title="Добавить в закладки">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                            <path d="M3 2h8v10.5L7 10l-4 2.5V2z" stroke="currentColor" stroke-width="1.1"
+                                stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                        </svg>
+                    </button>
+                    <div class="url-clear" id="url-clear" title="Очистить">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                            <path d="M4 4l6 6M10 4l-6 6" stroke="currentColor" stroke-width="1.2"
+                                stroke-linecap="round" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feature Buttons -->
+            <div class="feature-buttons">
+                <button id="btn-frost" class="feature-btn active" title="Frost Mode — Заморозка вкладок">
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                        <path d="M9 1v16M1 9h16M3.3 3.3l11.4 11.4M14.7 3.3L3.3 14.7" stroke="currentColor"
+                            stroke-width="1.2" stroke-linecap="round" />
+                        <circle cx="9" cy="9" r="2" stroke="currentColor" stroke-width="1" />
+                    </svg>
+                    <span class="frost-badge" id="frost-badge" style="display:none">0</span>
+                </button>
+
+                <button id="btn-pulse" class="feature-btn" title="Pulse — Статистика защиты">
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                        <path d="M1 9h3l2-5 3 10 2-7 2 4h4" stroke="currentColor" stroke-width="1.3"
+                            stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <span class="pulse-dot" id="pulse-dot"></span>
+                </button>
+
+                <button id="btn-ai" class="feature-btn" title="AI Агент">
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                        <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.2" fill="none" />
+                        <path d="M9 11v3M6 16h6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
+                        <circle cx="7.5" cy="6.5" r="0.8" fill="currentColor" />
+                        <circle cx="10.5" cy="6.5" r="0.8" fill="currentColor" />
+                    </svg>
+                </button>
+
+                <button id="btn-screenshot" class="feature-btn" title="Скриншот страницы">
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                        <rect x="2" y="4" width="14" height="11" rx="2" stroke="currentColor" stroke-width="1.2"
+                            fill="none" />
+                        <circle cx="9" cy="10" r="3" stroke="currentColor" stroke-width="1.2" fill="none" />
+                        <path d="M6 4V3h6v1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
+                    </svg>
+                </button>
+
+                <button id="btn-downloads" class="feature-btn" title="Загрузки">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="1.5"
+                            stroke-linecap="round" stroke-linejoin="round" />
+                        <polyline points="7 10 12 15 17 10" stroke="currentColor" stroke-width="1.5"
+                            stroke-linecap="round" stroke-linejoin="round" />
+                        <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" stroke-width="1.5"
+                            stroke-linecap="round" />
+                    </svg>
+                </button>
+
+                <button id="btn-menu" class="feature-btn" title="Меню (Ctrl+K)">
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                        <path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" stroke-width="1.3"
+                            stroke-linecap="round" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- === Bookmarks Bar === -->
+        <div id="bookmarks-bar" class="bookmarks-bar" style="display:none">
+            <div id="bookmarks-list" class="bookmarks-list">
+                <!-- Bookmarks injected -->
+            </div>
+        </div>
+
+        <!-- === LOADING BAR (glow effect) === -->
+        <div id="loading-bar" class="loading-bar"></div>
+
+        <!-- === FIND BAR (Ctrl+F) === -->
+        <div id="find-bar" class="find-bar" style="display:none">
+            <input type="text" id="find-input" class="find-input" placeholder="Поиск на странице..." spellcheck="false">
+            <span id="find-count" class="find-count">0/0</span>
+            <button id="find-prev" class="find-btn" title="Предыдущий">▲</button>
+            <button id="find-next" class="find-btn" title="Следующий">▼</button>
+            <button id="find-close" class="find-btn" title="Закрыть">✕</button>
+        </div>
+
+        <!-- === ZOOM INDICATOR === -->
+        <div id="zoom-indicator" class="zoom-indicator" style="display:none">
+            <span id="zoom-level">100%</span>
+            <button id="zoom-reset" class="zoom-reset-btn">Сброс</button>
+        </div>
+
+        <!-- === MAIN CONTENT AREA === -->
+        <div class="main-content">
+            <!-- === SIDEBAR === -->
+            <div id="sidebar" class="sidebar" style="display:none">
+                <div class="sidebar-tabs">
+                    <button class="sidebar-tab active" data-panel="bookmarks" title="Закладки">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M3 2h10v12l-5-3-5 3V2z" stroke="currentColor" stroke-width="1.2" fill="none" />
+                        </svg>
+                    </button>
+                    <button class="sidebar-tab" data-panel="history" title="История">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.2" fill="none" />
+                            <path d="M8 4v4l3 2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
+                        </svg>
+                    </button>
+                    <button class="sidebar-tab" data-panel="downloads" title="Загрузки">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M8 2v8M5 7l3 3 3-3M3 12h10" stroke="currentColor" stroke-width="1.2"
+                                stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                    </button>
+                    <button class="sidebar-tab" data-panel="notes" title="Заметки">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <rect x="3" y="2" width="10" height="12" rx="1.5" stroke="currentColor" stroke-width="1.2"
+                                fill="none" />
+                            <path d="M6 5h4M6 7.5h4M6 10h2" stroke="currentColor" stroke-width="1"
+                                stroke-linecap="round" />
+                        </svg>
+                    </button>
+                    <button class="sidebar-tab" data-panel="readinglist" title="Отложенное">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M2 3h12M2 6.5h12M2 10h8M2 13h5" stroke="currentColor" stroke-width="1.2"
+                                stroke-linecap="round" />
+                        </svg>
+                    </button>
+                    <button class="sidebar-tab" data-panel="settings" title="Настройки">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.2" fill="none" />
+                            <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5L13 13M13 3l-1.5 1.5M4.5 11.5L3 13"
+                                stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="sidebar-content">
+                    <!-- Sidebar panels injected by JS -->
+                    <div id="sidebar-panel" class="sidebar-panel"></div>
+                </div>
+            </div>
+
+            <!-- === WEBVIEW CONTAINER === -->
+            <div id="webview-container" class="webview-container">
+                <!-- Webviews injected by JS -->
+            </div>
+        </div>
+
+        <!-- === STATUS BAR === -->
+        <div id="status-bar" class="status-bar">
+            <span id="status-text" class="status-text"></span>
+            <div class="status-right">
+                <span id="status-ram" class="status-badge" title="Использование RAM">RAM: --</span>
+                <span id="status-zoom" class="status-badge" title="Масштаб">100%</span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ============ COMMAND PALETTE (Ctrl+K) ============ -->
+    <div id="command-palette" class="command-palette-overlay" style="display:none">
+        <div class="command-palette">
+            <div class="command-palette-header">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                    <circle cx="7.5" cy="7.5" r="5" stroke="currentColor" stroke-width="1.5" fill="none" />
+                    <path d="M11.5 11.5L16 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                </svg>
+                <input type="text" id="command-input" class="command-input"
+                    placeholder="Искать вкладки, команды, историю..." autofocus spellcheck="false">
+                <kbd class="command-kbd">ESC</kbd>
+            </div>
+            <div id="command-results" class="command-results">
+            </div>
+            <div class="command-footer">
+                <span><kbd>↑↓</kbd> навигация</span>
+                <span><kbd>⏎</kbd> выбрать</span>
+                <span><kbd>ESC</kbd> закрыть</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ PULSE DASHBOARD ============ -->
+    <div id="pulse-panel" class="pulse-panel" style="display:none">
+        <div class="pulse-header">
+            <h3>
+                <svg width="16" height="16" viewBox="0 0 18 18" fill="none" style="vertical-align: -2px">
+                    <path d="M1 9h3l2-5 3 10 2-7 2 4h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                </svg>
+                Pulse
+            </h3>
+            <button id="pulse-close" class="panel-close-btn" title="Закрыть">✕</button>
+        </div>
+        <div class="pulse-stats">
+            <div class="pulse-stat">
+                <div class="pulse-stat-value" id="pulse-ads">0</div>
+                <div class="pulse-stat-label">Реклама заблокирована</div>
+            </div>
+            <div class="pulse-stat">
+                <div class="pulse-stat-value" id="pulse-trackers">0</div>
+                <div class="pulse-stat-label">Трекеры остановлены</div>
+            </div>
+            <div class="pulse-stat">
+                <div class="pulse-stat-value" id="pulse-data">0 KB</div>
+                <div class="pulse-stat-label">Трафик сэкономлен</div>
+            </div>
+            <div class="pulse-stat">
+                <div class="pulse-stat-value" id="pulse-time">0s</div>
+                <div class="pulse-stat-label">Время сессии</div>
+            </div>
+        </div>
+        <div class="pulse-frost-section">
+            <h4>Frost Mode</h4>
+            <div class="pulse-frost-stats">
+                <span id="pulse-frost-count">0</span> вкладок заморожено •
+                <span id="pulse-frost-saved">0 MB</span> RAM сэкономлено
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ VOICE AI AGENT ORB ============ -->
+    <div id="ai-orb-container" class="ai-orb-container" style="display:none">
+        <div class="ai-orb-content">
+            <div class="ai-orb-status" id="ai-orb-status">Подключение...</div>
+            <div class="ai-orb-visualizer" id="ai-orb-visualizer">
+                <div class="orb-ring orb-ring-1"></div>
+                <div class="orb-ring orb-ring-2"></div>
+                <div class="orb-ring orb-ring-3"></div>
+                <div class="orb-core">
+                    <img src="../GRAVITY LOGO/7.png" alt="AI">
+                </div>
+            </div>
+            <div class="ai-orb-subtitle" id="ai-orb-subtitle">Gravity AI Agent</div>
+            <button class="ai-orb-end-call" id="ai-orb-end-call">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path
+                        d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91">
+                    </path>
+                    <line x1="23" y1="1" x2="1" y2="23"></line>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- ============ DOWNLOADS PANEL ============ -->
+    <div id="downloads-panel" class="downloads-panel" style="display:none">
+        <div class="downloads-panel-header">
+            <h3>Загрузки</h3>
+            <span id="downloads-open-folder" class="downloads-link">Открыть папку</span>
+        </div>
+        <div id="downloads-panel-list" class="downloads-panel-list">
+            <!-- Items injected by JS -->
+            <div class="downloads-empty">Нет загрузок</div>
+        </div>
+        <div class="downloads-panel-footer">
+            <span id="downloads-show-all" class="downloads-link">Все загрузки</span>
+            <span id="downloads-clear" class="downloads-link">Очистить</span>
+        </div>
+    </div>
+
+    <!-- ============ CONTEXT MENU ============ -->
+    <div id="context-menu" class="context-menu" style="display:none">
+        <!-- Items injected by JS -->
+    </div>
+
+    <!-- ============ DOWNLOAD PROGRESS BAR ============ -->
+    <div id="download-bar" class="download-bar" style="display:none">
+        <div class="download-bar-info">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+            </svg>
+            <span id="download-bar-name" class="download-bar-name">file.zip</span>
+            <span id="download-bar-stats" class="download-bar-stats">0%</span>
+        </div>
+        <div class="download-bar-track">
+            <div id="download-bar-fill" class="download-bar-fill" style="width:0%"></div>
+        </div>
+        <button id="download-bar-close" class="download-bar-close" title="Скрыть">✕</button>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>

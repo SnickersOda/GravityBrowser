@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Настройки — Gravity</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            min-height: 100vh;
+            font-family: 'Inter', sans-serif;
+            background: #0a0a0a;
+            color: rgba(255, 255, 255, 0.9);
+            transition: background 0.3s, color 0.3s;
+        }
+
+        [data-theme="light"],
+        [data-theme="light"] body {
+            background: #e4e4e2;
+            color: rgba(0, 0, 0, 0.8);
+        }
+
+        [data-theme="light"] .section-title {
+            color: rgba(0, 0, 0, 0.4);
+            border-bottom-color: rgba(0, 0, 0, 0.08);
+        }
+
+        [data-theme="light"] .setting-label {
+            color: rgba(0, 0, 0, 0.85);
+        }
+
+        [data-theme="light"] .setting-desc {
+            color: rgba(0, 0, 0, 0.4);
+        }
+
+        [data-theme="light"] .setting-row:hover {
+            background: rgba(0, 0, 0, 0.03);
+        }
+
+        [data-theme="light"] select {
+            background: rgba(0, 0, 0, 0.04);
+            border-color: rgba(0, 0, 0, 0.12);
+            color: #222;
+        }
+
+        [data-theme="light"] option {
+            background: #fff;
+            color: #222;
+        }
+
+        [data-theme="light"] .toggle {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="light"] .color-dot.active {
+            box-shadow: 0 0 0 2px #f5f5f5;
+            border-color: #333;
+        }
+
+        [data-theme="light"] .btn-danger {
+            background: rgba(248, 113, 113, 0.08);
+        }
+
+        [data-theme="light"] .toast {
+            background: #333;
+            color: #fff;
+        }
+
+        .settings-page {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 48px 24px 80px;
+        }
+
+        .settings-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+
+        .settings-header img {
+            width: 40px;
+            height: 40px;
+        }
+
+        .settings-header h1 {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .section {
+            margin-bottom: 36px;
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: rgba(255, 255, 255, 0.35);
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            border-radius: 10px;
+            transition: background 0.15s;
+            margin-bottom: 2px;
+        }
+
+        .setting-row:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .setting-info {
+            flex: 1;
+        }
+
+        .setting-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .setting-desc {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.35);
+            margin-top: 2px;
+        }
+
+        /* Toggle */
+        .toggle {
+            width: 42px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+
+        .toggle.active {
+            background: #808080;
+        }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 18px;
+            height: 18px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s;
+        }
+
+        .toggle.active::after {
+            transform: translateX(18px);
+        }
+
+        /* Select */
+        select {
+            padding: 6px 12px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            color: white;
+            font-size: 13px;
+            font-family: inherit;
+            outline: none;
+            cursor: pointer;
+        }
+
+        select:focus {
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        option {
+            background: #1a1a1a;
+        }
+
+        /* Accent colors */
+        .color-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .color-dot {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .color-dot:hover {
+            transform: scale(1.15);
+        }
+
+        .color-dot.active {
+            border-color: white;
+            box-shadow: 0 0 0 2px #0a0a0a;
+        }
+
+        /* Buttons */
+        .btn-danger {
+            padding: 10px 20px;
+            background: rgba(248, 113, 113, 0.1);
+            border: 1px solid rgba(248, 113, 113, 0.2);
+            border-radius: 8px;
+            color: #f87171;
+            font-size: 13px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 8px;
+        }
+
+        .btn-danger:hover {
+            background: rgba(248, 113, 113, 0.2);
+        }
+
+        .btn-secondary {
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 13px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-right: 8px;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .about-section {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .about-section img {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 12px;
+        }
+
+        .about-version {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .about-meta {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 24px;
+            padding: 0;
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.35);
+            font-size: 13px;
+            font-weight: 400;
+            letter-spacing: 0.2px;
+            animation: fadeInHint 0.3s ease-out, fadeOutHint 0.4s ease 1.5s forwards;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        @keyframes fadeInHint {
+            from {
+                opacity: 0;
+                transform: translateY(-6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeOutHint {
+            to {
+                opacity: 0;
+                transform: translateY(-4px);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="settings-page" id="settings-page">
+        <div class="settings-header">
+            <img src="../GRAVITY LOGO/7.png" alt="G">
+            <h1 data-i18n="title">Настройки</h1>
+        </div>
+
+        <!-- GENERAL -->
+        <div class="section">
+            <div class="section-title" data-i18n="sectionGeneral">Основные</div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label" data-i18n="language">Язык</div>
+                    <div class="setting-desc" data-i18n="languageDesc">Язык интерфейса</div>
+                </div>
+                <select data-key="language">
+                    <option value="ru">Русский</option>
+                    <option value="en">English</option>
+                </select>
+            </div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label" data-i18n="searchEngine">Поисковик</div>
+                    <div class="setting-desc" data-i18n="searchEngineDesc">Поиск по умолчанию</div>
+                </div>
+                <select data-key="searchEngine">
+                    <option value="google">Google</option>
+                    <option value="yandex">Yandex</option>
+                    <option value="duckduckgo">DuckDuckGo</option>
+                </select>
+            </div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label" data-i18n="restoreSession">Восстанавливать сессию</div>
+                    <div class="setting-desc" data-i18n="restoreSessionDesc">Открывать вкладки прошлой сессии</div>
+                </div>
+                <div class="toggle" data-key="restoreSession"></div>
+            </div>
+        </div>
+
+        <!-- AI PROVIDER -->
+        <div class="section">
+            <div class="section-title">ИИ-ассистент</div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label">Провайдер ИИ</div>
+                    <div class="setting-desc">OpenAI Realtime (WebRTC) или Gemini Live (WebSocket)</div>
+                </div>
+                <select data-key="aiProvider">
+                    <option value="openai">OpenAI</option>
+                    <option value="gemini">Gemini</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- APPEARANCE -->
+        <div class="section">
+            <div class="section-title" data-i18n="sectionAppearance">Оформление</div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label" data-i18n="theme">Тема</div>
+                </div>
+                <select data-key="theme">
+                    <option value="dark" data-i18n-val="themeDark">Тёмная</option>
+                    <option value="light" data-i18n-val="themeLight">Светлая</option>
+                </select>
+            </div>
+            <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:12px">
+                <div class="setting-info">
+                    <div class="setting-label" data-i18n="accentColor">Акцентный цвет</div>
+                </div>
+                <div class="color-row" id="color-row"></div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label" data-i18n="bookmarksBar">Панель закладок</div>
+                    <div class="setting-desc" data-i18n="bookmarksBarDesc">Показывать под адресной строкой</div>
+                </div>
+                <div class="toggle" data-key="showBookmarksBar"></div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label" data-i18n="density">Плотность интерфейса</div>
+                </div>
+                <select data-key="density">
+                    <option value="comfortable" data-i18n-val="densityComfortable">Удобная</option>
+                    <option value="compact" data-i18n-val="densityCompact">Компактная</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- AI AGENT -->
+        <div class="section">
+            <div class="section-title" data-i18n="sectionAI">Gravity AI Agent (GPT-4o & Gemini)</div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label" data-i18n="aiApiKey">OpenAI API ключ</div>
+                    <div class="setting-desc" data-i18n="aiApiKeyDesc">Получите на platform.openai.com</div>
+                </div>
+                <input type="password" id="ai-api-key-input" placeholder="sk-..."
+                    style="width:260px;padding:8px 12px;border-radius:8px;border:1px solid #444;background:#1a1a1a;color:#fff;font-size:13px;">
+            </div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label">Gemini API ключ</div>
+                    <div class="setting-desc">Получите на aistudio.google.com</div>
+                </div>
+                <input type="password" id="gemini-api-key-input" placeholder="AIza..."
+                    style="width:260px;padding:8px 12px;border-radius:8px;border:1px solid #444;background:#1a1a1a;color:#fff;font-size:13px;">
+            </div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label">Сохранить ключи</div>
+                    <div class="setting-desc">Ключи сохраняются локально и никуда не отправляются</div>
+                </div>
+                <button onclick="saveApiKey()"
+                    style="padding:8px 20px;border-radius:8px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;cursor:pointer;font-size:13px;">Сохранить</button>
+            </div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label" data-i18n="aiMic">Микрофон</div>
+                    <div class="setting-desc" data-i18n="aiMicDesc">Выберите устройство для голосового общения с AI
+                    </div>
+                </div>
+                <select data-key="aiMicDevice" id="mic-device-select">
+                    <option value="">По умолчанию</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- PRIVACY -->
+        <div class="section">
+            <div class="section-title" data-i18n="sectionPrivacy">Приватность и безопасность</div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label">Smooth Scroll</div>
+                    <div class="setting-desc" data-i18n="smoothScrollDesc">Плавная прокрутка на сайтах</div>
+                </div>
+                <div class="toggle" data-key="smoothScroll"></div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label">HTTPS Only</div>
+                    <div class="setting-desc" data-i18n="httpsDesc">Принудительное HTTPS</div>
+                </div>
+                <div class="toggle" data-key="httpsOnly"></div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label">Do Not Track</div>
+                    <div class="setting-desc" data-i18n="dntDesc">Отправлять заголовок DNT</div>
+                </div>
+                <div class="toggle" data-key="doNotTrack"></div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label">Fingerprint Protection</div>
+                    <div class="setting-desc" data-i18n="fpDesc">Скрытие данных об устройстве</div>
+                </div>
+                <div class="toggle" data-key="fingerprintProtection"></div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label" data-i18n="clearOnExit">Очищать при выходе</div>
+                    <div class="setting-desc" data-i18n="clearOnExitDesc">Удалять данные при закрытии браузера</div>
+                </div>
+                <div class="toggle" data-key="clearOnExit"></div>
+            </div>
+        </div>
+
+        <!-- PERFORMANCE -->
+        <div class="section">
+            <div class="section-title" data-i18n="sectionPerformance">Производительность</div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label">Frost Mode</div>
+                    <div class="setting-desc" data-i18n="frostDesc">Автозаморозка неактивных вкладок</div>
+                </div>
+                <div class="toggle" data-key="frostEnabled"></div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label">Low RAM Mode</div>
+                    <div class="setting-desc" data-i18n="lowRamDesc">Агрессивная экономия памяти</div>
+                </div>
+                <div class="toggle" data-key="lowRamMode"></div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label" data-i18n="tabWarning">Предупреждение о вкладках</div>
+                    <div class="setting-desc" data-i18n="tabWarningDesc">Показывать при открытии N+ вкладок</div>
+                </div>
+                <select data-key="tabCountWarning">
+                    <option value="20">20</option>
+                    <option value="30">30</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- DATA -->
+        <div class="section">
+            <div class="section-title" data-i18n="sectionData">Данные</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;padding:8px 0">
+                <button class="btn-secondary" id="btn-clear-history">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        style="margin-right:6px;vertical-align:text-bottom">
+                        <path
+                            d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    </svg>
+                    <span data-i18n="clearHistory">Очистить историю</span>
+                </button>
+                <button class="btn-secondary" id="btn-clear-cache">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        style="margin-right:6px;vertical-align:text-bottom">
+                        <path
+                            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z" />
+                    </svg>
+                    <span data-i18n="clearCache">Очистить кэш</span>
+                </button>
+                <button class="btn-danger" id="btn-clear-all">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        style="margin-right:6px;vertical-align:text-bottom">
+                        <path
+                            d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4m0 4h.01" />
+                    </svg>
+                    <span data-i18n="clearAll">Очистить всё</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- ABOUT -->
+        <div class="section">
+            <div class="section-title" data-i18n="sectionAbout">О браузере</div>
+            <div class="about-section">
+                <img src="../GRAVITY LOGO/7.png" alt="Gravity">
+                <div class="about-version">Gravity <span id="app-version">2.0.0</span></div>
+                <div class="about-meta" id="about-meta"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============ i18n ============
+        const i18n = {
+            ru: {
+                title: 'Настройки',
+                sectionGeneral: 'Основные', language: 'Язык', languageDesc: 'Язык интерфейса',
+                searchEngine: 'Поисковик', searchEngineDesc: 'Поиск по умолчанию',
+                restoreSession: 'Восстанавливать сессию', restoreSessionDesc: 'Открывать вкладки прошлой сессии',
+                sectionAppearance: 'Оформление', theme: 'Тема', themeDark: 'Тёмная', themeLight: 'Светлая',
+                accentColor: 'Акцентный цвет', bookmarksBar: 'Панель закладок',
+                bookmarksBarDesc: 'Показывать под адресной строкой',
+                density: 'Плотность интерфейса', densityComfortable: 'Удобная', densityCompact: 'Компактная',
+                sectionPrivacy: 'Приватность и безопасность',
+                smoothScrollDesc: 'Плавная прокрутка на сайтах',
+                httpsDesc: 'Принудительное HTTPS', dntDesc: 'Отправлять заголовок DNT',
+                fpDesc: 'Скрытие данных об устройстве',
+                clearOnExit: 'Очищать при выходе', clearOnExitDesc: 'Удалять данные при закрытии браузера',
+                sectionPerformance: 'Производительность',
+                frostDesc: 'Автозаморозка неактивных вкладок', lowRamDesc: 'Агрессивная экономия памяти',
+                tabWarning: 'Предупреждение о вкладках', tabWarningDesc: 'Показывать при открытии N+ вкладок',
+                sectionData: 'Данные', clearHistory: 'Очистить историю', clearCache: 'Очистить кэш',
+                clearAll: 'Очистить всё', sectionAbout: 'О браузере',
+                saved: 'Сохранено', colorUpdated: 'Цвет обновлён',
+                historyCleared: 'История очищена', cacheCleared: 'Кэш очищен', allCleared: 'Все данные очищены',
+                sectionAI: 'Gravity AI Agent', aiApiKey: 'OpenAI API ключ', aiApiKeyDesc: 'Получите на platform.openai.com',
+            },
+            en: {
+                title: 'Settings',
+                sectionGeneral: 'General', language: 'Language', languageDesc: 'Interface language',
+                searchEngine: 'Search engine', searchEngineDesc: 'Default search',
+                restoreSession: 'Restore session', restoreSessionDesc: 'Open tabs from last session',
+                sectionAppearance: 'Appearance', theme: 'Theme', themeDark: 'Dark', themeLight: 'Light',
+                accentColor: 'Accent color', bookmarksBar: 'Bookmarks bar',
+                bookmarksBarDesc: 'Show below address bar',
+                density: 'Interface density', densityComfortable: 'Comfortable', densityCompact: 'Compact',
+                sectionPrivacy: 'Privacy & Security',
+                smoothScrollDesc: 'Smooth scrolling on websites',
+                httpsDesc: 'Force HTTPS', dntDesc: 'Send DNT header',
+                fpDesc: 'Hide device information',
+                clearOnExit: 'Clear on exit', clearOnExitDesc: 'Delete data when browser closes',
+                sectionPerformance: 'Performance',
+                frostDesc: 'Auto-freeze inactive tabs', lowRamDesc: 'Aggressive memory saving',
+                tabWarning: 'Tab warning', tabWarningDesc: 'Show when N+ tabs are open',
+                sectionData: 'Data', clearHistory: 'Clear history', clearCache: 'Clear cache',
+                clearAll: 'Clear all', sectionAbout: 'About',
+                saved: 'Saved', colorUpdated: 'Color updated',
+                historyCleared: 'History cleared', cacheCleared: 'Cache cleared', allCleared: 'All data cleared',
+                sectionAI: 'Gravity AI Agent', aiApiKey: 'OpenAI API Key', aiApiKeyDesc: 'Get at platform.openai.com',
+            }
+        };
+
+        function t(key) { return (i18n[settings.language] || i18n.ru)[key] || key; }
+
+        function applyLanguage() {
+            const dict = i18n[settings.language] || i18n.ru;
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.dataset.i18n;
+                if (dict[key]) el.textContent = dict[key];
+            });
+            document.querySelectorAll('[data-i18n-val]').forEach(el => {
+                const key = el.dataset.i18nVal;
+                if (dict[key]) el.textContent = dict[key];
+            });
+        }
+
+        // ============ Settings logic ============
+        const accentColors = [
+            { name: 'gray', val: '#808080' },
+            { name: 'blue', val: '#3b82f6' },
+            { name: 'green', val: '#22c55e' },
+            { name: 'purple', val: '#8b5cf6' },
+            { name: 'red', val: '#ef4444' },
+            { name: 'orange', val: '#f97316' },
+            { name: 'pink', val: '#ec4899' },
+            { name: 'cyan', val: '#06b6d4' },
+        ];
+
+        let settings = {};
+
+        function showToast(msg) {
+            const old = document.querySelector('.toast');
+            if (old) old.remove();
+            const el = document.createElement('div');
+            el.className = 'toast';
+            el.textContent = msg;
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 2000);
+        }
+
+        async function loadSettings() {
+            settings = await window.gravity.settings.load();
+            applyToUI();
+            await enumerateMicrophones();
+            // Populate API key placeholders if saved
+            const keyInput = document.getElementById('ai-api-key-input');
+            if (keyInput && settings.aiApiKey) {
+                keyInput.placeholder = 'Сохранён (введите новый для замены)';
+            }
+            const geminiInput = document.getElementById('gemini-api-key-input');
+            if (geminiInput && settings.geminiApiKey) {
+                geminiInput.placeholder = 'Сохранён (введите новый для замены)';
+            }
+        }
+
+        async function saveApiKey() {
+            let updated = false;
+
+            const openaiInput = document.getElementById('ai-api-key-input');
+            if (openaiInput && openaiInput.value.trim()) {
+                settings.aiApiKey = openaiInput.value.trim();
+                updated = true;
+                openaiInput.value = '';
+                openaiInput.placeholder = 'Сохранён (введите новый для замены)';
+            }
+
+            const geminiInput = document.getElementById('gemini-api-key-input');
+            if (geminiInput && geminiInput.value.trim()) {
+                settings.geminiApiKey = geminiInput.value.trim();
+                updated = true;
+                geminiInput.value = '';
+                geminiInput.placeholder = 'Сохранён (введите новый для замены)';
+            }
+
+            if (updated) {
+                await window.gravity.settings.save(settings);
+                showToast('Ключи сохранены ✅');
+            } else {
+                showToast('Введите ключ для сохранения');
+            }
+        }
+
+        async function enumerateMicrophones() {
+            const sel = document.getElementById('mic-device-select');
+            if (!sel) return;
+            try {
+                // Request permission first
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                stream.getTracks().forEach(t => t.stop());
+
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const mics = devices.filter(d => d.kind === 'audioinput');
+
+                // Keep default option, add real devices
+                sel.innerHTML = '<option value="">По умолчанию</option>';
+                mics.forEach((mic, i) => {
+                    const opt = document.createElement('option');
+                    opt.value = mic.deviceId;
+                    opt.textContent = mic.label || ('Микрофон ' + (i + 1));
+                    sel.appendChild(opt);
+                });
+
+                if (settings.aiMicDevice) {
+                    sel.value = settings.aiMicDevice;
+                }
+            } catch (e) {
+                console.warn('Cannot enumerate mics:', e);
+            }
+        }
+
+        function applyToUI() {
+            document.documentElement.setAttribute('data-theme', settings.theme || 'dark');
+            // Selects
+            document.querySelectorAll('select[data-key]').forEach(sel => {
+                sel.value = settings[sel.dataset.key] || sel.options[0].value;
+            });
+            // Toggles
+            document.querySelectorAll('.toggle[data-key]').forEach(tog => {
+                tog.classList.toggle('active', !!settings[tog.dataset.key]);
+            });
+            // Text inputs
+            document.querySelectorAll('input[data-key]').forEach(inp => {
+                inp.value = settings[inp.dataset.key] || '';
+            });
+            // Color dots
+            const cr = document.getElementById('color-row');
+            cr.innerHTML = '';
+            accentColors.forEach(c => {
+                const dot = document.createElement('div');
+                dot.className = 'color-dot' + (settings.accentColor === c.val ? ' active' : '');
+                dot.style.background = c.val;
+                dot.title = c.name;
+                dot.addEventListener('click', async () => {
+                    settings.accentColor = c.val;
+                    await window.gravity.settings.save(settings);
+                    cr.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+                    dot.classList.add('active');
+                    showToast(t('colorUpdated'));
+                });
+                cr.appendChild(dot);
+            });
+            // Apply language
+            applyLanguage();
+        }
+
+        // Bind select changes
+        document.querySelectorAll('select[data-key]').forEach(sel => {
+            sel.addEventListener('change', async () => {
+                let val = sel.value;
+                if (sel.dataset.key === 'tabCountWarning') val = parseInt(val);
+                settings[sel.dataset.key] = val;
+                if (sel.dataset.key === 'theme') {
+                    document.documentElement.setAttribute('data-theme', val);
+                }
+                if (sel.dataset.key === 'language') {
+                    applyLanguage();
+                }
+                await window.gravity.settings.save(settings);
+                showToast(t('saved'));
+            });
+        });
+
+        // Bind toggle clicks
+        document.querySelectorAll('.toggle[data-key]').forEach(tog => {
+            tog.addEventListener('click', async () => {
+                settings[tog.dataset.key] = !settings[tog.dataset.key];
+                tog.classList.toggle('active', settings[tog.dataset.key]);
+                await window.gravity.settings.save(settings);
+                showToast(t('saved'));
+            });
+        });
+
+        // Bind input changes (text inputs like API key)
+        document.querySelectorAll('input[data-key]').forEach(inp => {
+            inp.addEventListener('change', async () => {
+                settings[inp.dataset.key] = inp.value.trim();
+                await window.gravity.settings.save(settings);
+                showToast(t('saved'));
+            });
+        });
+
+        // Data buttons
+        document.getElementById('btn-clear-history').addEventListener('click', async () => {
+            await window.gravity.history.clear();
+            showToast(t('historyCleared'));
+        });
+        document.getElementById('btn-clear-cache').addEventListener('click', async () => {
+            await window.gravity.data.clearCache();
+            showToast(t('cacheCleared'));
+        });
+        document.getElementById('btn-clear-all').addEventListener('click', async () => {
+            await window.gravity.data.clearAll();
+            showToast(t('allCleared'));
+        });
+
+        // About
+        async function loadAbout() {
+            try {
+                const info = await window.gravity.app.getInfo();
+                document.getElementById('app-version').textContent = info.version;
+                document.getElementById('about-meta').textContent = `Electron ${info.electron} • Chrome ${info.chrome} • Node ${info.node} • ${info.platform} ${info.arch}`;
+            } catch (e) { }
+        }
+
+        document.getElementById('play-voice-preview')?.addEventListener('click', async () => {
+            const key = document.getElementById('ai-api-key-input')?.value || settings.aiApiKey;
+            if (!key || key.length < 10) return alert('Сначала введите API ключ OpenAI в поле выше!');
+            const voice = document.getElementById('ai-voice-select').value || 'alloy';
+            const btn = document.getElementById('play-voice-preview');
+            btn.textContent = '...';
+            try {
+                const res = await fetch('https://api.openai.com/v1/audio/speech', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ model: 'tts-1', voice: voice, input: 'Привет, я Маузер. Рад знакомству!' })
+                });
+                if (!res.ok) throw new Error('Ошибка API. Проверьте ключ и баланс.');
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const audio = new Audio(url);
+                audio.play();
+                audio.onended = () => { btn.textContent = '▶️'; URL.revokeObjectURL(url); };
+            } catch (e) {
+                alert('Ошибка: ' + e.message);
+                btn.textContent = '▶️';
+            }
+        });
+
+        loadSettings();
+        loadAbout();
+    </script>
+</body>
+
+</html>

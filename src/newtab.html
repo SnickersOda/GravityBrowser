@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <title>GRAVITY</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            background: #0a0a0a;
+            color: rgba(255, 255, 255, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Background glow */
+        .glow {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(140px);
+            opacity: 0.04;
+            pointer-events: none;
+        }
+
+        .glow-1 {
+            top: -10%;
+            left: 10%;
+            width: 600px;
+            height: 600px;
+            background: #888;
+        }
+
+        .glow-2 {
+            bottom: -10%;
+            right: 10%;
+            width: 600px;
+            height: 600px;
+            background: #aaa;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 800px;
+            padding: 0 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* === LOGO === */
+        .logo-block {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 48px;
+        }
+
+        .logo {
+            width: 420px;
+            max-width: 80vw;
+            height: auto;
+            object-fit: contain;
+            margin-bottom: 16px;
+            filter: drop-shadow(0 0 40px rgba(255, 255, 255, 0.06));
+        }
+
+
+
+        /* === SEARCH === */
+        .search-wrap {
+            width: 100%;
+            max-width: 700px;
+            position: relative;
+            margin-bottom: 56px;
+            transition: transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        .search-wrap:hover {
+            transform: scale(1.02);
+        }
+
+        .search-bar {
+            width: 100%;
+            height: 56px;
+            padding: 0 56px 0 24px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 28px;
+            outline: none;
+            color: #fff;
+            font-size: 17px;
+            font-family: inherit;
+            transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+        }
+
+        .search-bar:hover {
+            border-color: rgba(255, 255, 255, 0.18);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2),
+                0 0 15px rgba(255, 255, 255, 0.04),
+                0 0 30px rgba(255, 255, 255, 0.02);
+        }
+
+        .search-bar:focus {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.25);
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4),
+                0 0 20px rgba(255, 255, 255, 0.06),
+                0 0 40px rgba(255, 255, 255, 0.03);
+        }
+
+        /* Animated neon sweep — single flash on hover */
+        .search-wrap::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border-radius: 30px;
+            background: linear-gradient(90deg, transparent 0%, transparent 30%, rgba(255, 255, 255, 0.6) 50%, transparent 70%, transparent 100%);
+            background-size: 200% 100%;
+            background-position: -100% 0;
+            opacity: 0;
+            z-index: -1;
+            /* Mask: only border ring visible */
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask-composite: exclude;
+            padding: 2px;
+        }
+
+        .search-wrap.neon-flash::before {
+            opacity: 1;
+            animation: neon-flash 2s ease-in-out forwards;
+        }
+
+        @keyframes neon-flash {
+            0% {
+                background-position: -100% 0;
+                opacity: 0;
+            }
+
+            15% {
+                opacity: 1;
+            }
+
+            85% {
+                opacity: 1;
+            }
+
+            100% {
+                background-position: 200% 0;
+                opacity: 0;
+            }
+        }
+
+        .search-bar::placeholder {
+            color: rgba(255, 255, 255, 0.25);
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.3);
+            pointer-events: none;
+        }
+
+        /* === QUICK LINKS === */
+        .quick-links {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            width: 100%;
+            max-width: 700px;
+        }
+
+        .quick-link {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            padding: 20px 12px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        .quick-link:hover {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(255, 255, 255, 0.1);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+        }
+
+        .quick-link-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.06);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .quick-link-icon img {
+            width: 36px;
+            height: 36px;
+            object-fit: contain;
+            border-radius: 4px;
+        }
+
+        .quick-link-title {
+            font-size: 12px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.6);
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
+
+        /* === LIGHT THEME === */
+        [data-theme="light"] body,
+        [data-theme="light"] {
+            background: #e4e4e2;
+            color: rgba(0, 0, 0, 0.8);
+        }
+
+        [data-theme="light"] .glow {
+            display: none;
+        }
+
+        [data-theme="light"] .logo {
+            filter: invert(1) drop-shadow(0 0 20px rgba(0, 0, 0, 0.05));
+        }
+
+        [data-theme="light"] .search-bar {
+            background: rgba(0, 0, 0, 0.04);
+            border-color: rgba(0, 0, 0, 0.08);
+            color: #222;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+        }
+
+        [data-theme="light"] .search-bar:hover {
+            border-color: rgba(0, 0, 0, 0.15);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+        }
+
+        [data-theme="light"] .search-bar:focus {
+            background: rgba(0, 0, 0, 0.02);
+            border-color: rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="light"] .search-bar::placeholder {
+            color: rgba(0, 0, 0, 0.3);
+        }
+
+        [data-theme="light"] .search-icon {
+            color: rgba(0, 0, 0, 0.3);
+        }
+
+        [data-theme="light"] .quick-link {
+            background: rgba(0, 0, 0, 0.03);
+            border-color: rgba(0, 0, 0, 0.06);
+        }
+
+        [data-theme="light"] .quick-link:hover {
+            background: rgba(0, 0, 0, 0.06);
+            border-color: rgba(0, 0, 0, 0.1);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+        }
+
+        [data-theme="light"] .quick-link-icon {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        [data-theme="light"] .quick-link-title {
+            color: rgba(0, 0, 0, 0.55);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="glow glow-1"></div>
+    <div class="glow glow-2"></div>
+
+    <div class="container">
+        <div class="logo-block">
+            <img src="../GRAVITY LOGO/main.png" class="logo" alt="Gravity">
+        </div>
+
+        <div class="search-wrap">
+            <input type="text" class="search-bar" id="search-input" placeholder="Искать в интернете или ввести адрес"
+                spellcheck="false" autocomplete="off" autofocus>
+            <svg class="search-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+        </div>
+
+        <div class="quick-links" id="quick-links"></div>
+    </div>
+
+    <script>
+        const defaultLinks = [
+            { url: 'https://vk.com', title: 'ВКонтакте' },
+            { url: 'https://www.youtube.com', title: 'YouTube' },
+            { url: 'https://telegram.org', title: 'Telegram' },
+            { url: 'https://github.com', title: 'GitHub' },
+            { url: 'https://www.google.com', title: 'Google' },
+            { url: 'https://mail.google.com', title: 'Gmail' },
+            { url: 'https://chatgpt.com', title: 'ChatGPT' },
+            { url: 'https://music.yandex.ru', title: 'Яндекс Музыка' },
+        ];
+
+        function renderLinks(links) {
+            const container = document.getElementById('quick-links');
+            container.innerHTML = '';
+            links.forEach(link => {
+                const a = document.createElement('a');
+                a.className = 'quick-link';
+                a.href = link.url;
+                const hostname = new URL(link.url).hostname;
+                a.innerHTML = `
+          <div class="quick-link-icon">
+            <img src="https://www.google.com/s2/favicons?domain=${hostname}&sz=128" alt=""
+              onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22white%22 stroke-width=%222%22><circle cx=%2212%22 cy=%2212%22 r=%2210%22/></svg>'">
+          </div>
+          <span class="quick-link-title">${link.title}</span>
+        `;
+                a.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    window.location.href = link.url;
+                });
+                container.appendChild(a);
+            });
+        }
+
+        renderLinks(defaultLinks);
+
+        document.getElementById('search-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const val = e.target.value.trim();
+                if (!val) return;
+                const isUrl = /^(https?:\/\/|[\w-]+\.[\w-]+)/.test(val);
+                window.location.href = isUrl
+                    ? (val.startsWith('http') ? val : 'https://' + val)
+                    : 'https://www.google.com/search?q=' + encodeURIComponent(val);
+            }
+        });
+
+        // Neon flash on hover — single sweep then fade
+        const searchWrap = document.querySelector('.search-wrap');
+        searchWrap.addEventListener('mouseenter', () => {
+            searchWrap.classList.remove('neon-flash');
+            void searchWrap.offsetWidth; // force reflow to restart animation
+            searchWrap.classList.add('neon-flash');
+        });
+        searchWrap.addEventListener('animationend', () => {
+            searchWrap.classList.remove('neon-flash');
+        });
+
+        // Apply theme from URL param
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('theme') === 'light') {
+            document.documentElement.setAttribute('data-theme', 'light');
+        }
+    </script>
+</body>
+
+</html>
