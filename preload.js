@@ -42,8 +42,12 @@ contextBridge.exposeInMainWorld('gravity', {
         clear: () => ipcRenderer.invoke('downloads:clear'),
         open: (filepath) => ipcRenderer.invoke('downloads:open', filepath),
         showInFolder: (filepath) => ipcRenderer.invoke('downloads:showInFolder', filepath),
+        openFolder: () => ipcRenderer.invoke('downloads:openFolder'),
         onProgress: (cb) => ipcRenderer.on('download-progress', (_, d) => cb(d)),
         onComplete: (cb) => ipcRenderer.on('download-complete', (_, d) => cb(d)),
+        onStart: (cb) => ipcRenderer.on('download:start', (_, d) => cb(d)),
+        onDownloadProgress: (cb) => ipcRenderer.on('download:progress', (_, d) => cb(d)),
+        onDone: (cb) => ipcRenderer.on('download:done', (_, d) => cb(d)),
     },
 
     // --- Bookmarks ---
@@ -172,6 +176,20 @@ contextBridge.exposeInMainWorld('gravity', {
         removeGeminiListeners: () => ipcRenderer.removeAllListeners('gemini-event'),
         // Provider
         getProvider: () => ipcRenderer.invoke('ai:getProvider'),
+    },
+
+    // --- Extensions ---
+    extensions: {
+        install: () => ipcRenderer.invoke('extensions:install'),
+        list: () => ipcRenderer.invoke('extensions:list'),
+        remove: (extId) => ipcRenderer.invoke('extensions:remove', extId),
+    },
+
+    // --- Default browser ---
+    browser: {
+        isDefault: () => ipcRenderer.invoke('browser:isDefault'),
+        setDefault: () => ipcRenderer.invoke('browser:setDefault'),
+        onNotDefault: (cb) => ipcRenderer.on('browser:notDefault', () => cb()),
     },
 
     // --- Events ---

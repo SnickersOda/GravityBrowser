@@ -358,6 +358,18 @@
             </div>
         </div>
 
+        <!-- DEFAULT BROWSER -->
+        <div class="section">
+            <div class="section-title">Браузер по умолчанию</div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label">Gravity Browser</div>
+                    <div class="setting-desc">Открывать все ссылки в Gravity</div>
+                </div>
+                <button type="button" id="default-browser-btn" class="modal-btn-confirm" style="padding:8px 16px;font-size:13px;">Сделать основным</button>
+            </div>
+        </div>
+
         <!-- AI PROVIDER -->
         <div class="section">
             <div class="section-title">ИИ-ассистент</div>
@@ -369,6 +381,7 @@
                 <select data-key="aiProvider">
                     <option value="openai">OpenAI</option>
                     <option value="gemini">Gemini</option>
+                    <option value="groq">Groq</option>
                 </select>
             </div>
         </div>
@@ -426,6 +439,14 @@
                     <div class="setting-desc">Получите на aistudio.google.com</div>
                 </div>
                 <input type="password" id="gemini-api-key-input" placeholder="AIza..."
+                    style="width:260px;padding:8px 12px;border-radius:8px;border:1px solid #444;background:#1a1a1a;color:#fff;font-size:13px;">
+            </div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label">Groq API ключ</div>
+                    <div class="setting-desc">Получите на console.groq.com (чат и описание экрана)</div>
+                </div>
+                <input type="password" id="groq-api-key-input" placeholder="gsk_..."
                     style="width:260px;padding:8px 12px;border-radius:8px;border:1px solid #444;background:#1a1a1a;color:#fff;font-size:13px;">
             </div>
             <div class="setting-row">
@@ -650,9 +671,31 @@
             setTimeout(() => el.remove(), 2000);
         }
 
+        async function updateDefaultBrowserButton() {
+            const btn = document.getElementById('default-browser-btn');
+            if (!btn || !window.gravity || !window.gravity.browser) return;
+            const isDefault = await window.gravity.browser.isDefault();
+            if (isDefault) {
+                btn.textContent = '✓ Gravity — основной браузер';
+                btn.disabled = true;
+                btn.style.background = 'transparent';
+                btn.style.color = '#4ade80';
+                btn.style.border = '1px solid rgba(74,222,128,0.3)';
+                btn.style.cursor = 'default';
+            } else {
+                btn.textContent = 'Сделать основным';
+                btn.disabled = false;
+                btn.style.background = '';
+                btn.style.color = '';
+                btn.style.border = '';
+                btn.style.cursor = '';
+            }
+        }
+
         async function loadSettings() {
             settings = await window.gravity.settings.load();
             applyToUI();
+            await updateDefaultBrowserButton();
             await enumerateMicrophones();
             // Populate API key placeholders if saved
             const keyInput = document.getElementById('ai-api-key-input');
@@ -662,6 +705,10 @@
             const geminiInput = document.getElementById('gemini-api-key-input');
             if (geminiInput && settings.geminiApiKey) {
                 geminiInput.placeholder = 'Сохранён (введите новый для замены)';
+            }
+            const groqInput = document.getElementById('groq-api-key-input');
+            if (groqInput && settings.groqApiKey) {
+                groqInput.placeholder = 'Сохранён (введите новый для замены)';
             }
         }
 
@@ -682,6 +729,14 @@
                 updated = true;
                 geminiInput.value = '';
                 geminiInput.placeholder = 'Сохранён (введите новый для замены)';
+            }
+
+            const groqInput = document.getElementById('groq-api-key-input');
+            if (groqInput && groqInput.value.trim()) {
+                settings.groqApiKey = groqInput.value.trim();
+                updated = true;
+                groqInput.value = '';
+                groqInput.placeholder = 'Сохранён (введите новый для замены)';
             }
 
             if (updated) {
@@ -792,6 +847,13 @@
         });
 
         // Data buttons
+        document.getElementById('default-browser-btn')?.addEventListener('click', async () => {
+            if (!window.gravity || !window.gravity.browser) return;
+            const r = await window.gravity.browser.setDefault();
+            await updateDefaultBrowserButton();
+            if (r && !r.isDefault) showToast('Выбери Gravity в открывшихся настройках Windows');
+        });
+
         document.getElementById('btn-clear-history').addEventListener('click', async () => {
             await window.gravity.history.clear();
             showToast(t('historyCleared'));

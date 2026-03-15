@@ -2,7 +2,7 @@
 // GRAVITY BROWSER — Main Process (v2.0 — 103 Features)
 // ============================================================
 
-const { app, BrowserWindow, ipcMain, session, shell, Menu, dialog, nativeImage, screen, nativeTheme } = require('electron');
+const { app, BrowserWindow, ipcMain, session, shell, Menu, dialog, nativeImage, screen, nativeTheme, globalShortcut } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
@@ -787,18 +787,19 @@ function setupAntiFingerprint() {
 }
 
 // ============================================================
-// DOWNLOADS HANDLER
+// DOWNLOADS HANDLER (per-window)
 // ============================================================
-function setupDownloads() {
-  session.defaultSession.on('will-download', (event, item, webContents) => {
+function setupDownloadManager(win) {
+  if (!win || win.isDestroyed()) return;
+  const ses = win.webContents.session;
+  ses.on('will-download', (event, item, webContents) => {
     const fileName = item.getFilename();
     const totalBytes = item.getTotalBytes();
     const downloadPath = path.join(app.getPath('downloads'), fileName);
-
     item.setSavePath(downloadPath);
 
     const dlItem = {
-      id: Date.now().toString(36),
+      id: item.getETag() || Date.now().toString(),
       filename: fileName,
       url: item.getURL(),
       path: downloadPath,
@@ -808,25 +809,36 @@ function setupDownloads() {
       timestamp: Date.now(),
     };
 
+    win.webContents.send('download:start', {
+      id: dlItem.id,
+      fileName,
+      savePath: downloadPath,
+      totalBytes,
+      url: item.getURL(),
+    });
+
     item.on('updated', (event, state) => {
-      dlItem.receivedBytes = item.getReceivedBytes();
-      dlItem.state = state;
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('download-progress', { ...dlItem });
-      }
+      const received = item.getReceivedBytes();
+      const total = item.getTotalBytes();
+      win.webContents.send('download:progress', {
+        savePath: downloadPath,
+        state,
+        receivedBytes: received,
+        totalBytes: total,
+        percent: total > 0 ? Math.round((received / total) * 100) : 0,
+      });
     });
 
     item.once('done', (event, state) => {
       dlItem.state = state;
       dlItem.receivedBytes = dlItem.totalBytes;
       addDownload(dlItem);
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('download-complete', { ...dlItem });
-        mainWindow.webContents.send('toast', {
-          message: `Загружено: ${fileName}`,
-          type: 'success'
-        });
-      }
+      win.webContents.send('download:done', {
+        savePath: downloadPath,
+        state,
+        fileName,
+      });
+      win.webContents.send('toast', { message: `Загружено: ${fileName}`, type: 'success' });
     });
   });
 }
@@ -929,14 +941,94 @@ function createWindow(isIncognito = false) {
 
   windows.push(win);
 
+  setupDownloadManager(win);
   if (!mainWindow) {
     mainWindow = win;
     setupAdBlocker();
     setupAntiFingerprint();
-    setupDownloads();
     setupWebViewPermissions();
   }
 
+  return win;
+}
+
+// ============================================================
+// EXTENSIONS (Chromium)
+// ============================================================
+async function loadExtensions() {
+  const extDir = path.join(app.getPath('userData'), 'extensions');
+  if (!fs.existsSync(extDir)) fs.mkdirSync(extDir, { recursive: true });
+  const folders = fs.readdirSync(extDir);
+  for (const folder of folders) {
+    const extPath = path.join(extDir, folder);
+    if (fs.statSync(extPath).isDirectory()) {
+      try {
+        await session.defaultSession.loadExtension(extPath, { allowFileAccess: true });
+        console.log('Загружено расширение:', folder);
+      } catch (e) {
+        console.error('Ошибка загрузки расширения:', folder, e.message);
+      }
+    }
+  }
+}
+
+// ============================================================
+// INCOGNITO WINDOW (separate session, no persistence)
+// ============================================================
+function createIncognitoWindow() {
+  const incognitoSession = session.fromPartition('incognito:' + Date.now(), { cache: false });
+  incognitoSession.setUserAgent(SPOOFED_UA);
+
+  const win = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    minWidth: 900,
+    minHeight: 600,
+    frame: false,
+    thickFrame: true,
+    backgroundColor: '#0a0a0a',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      webviewTag: true,
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: false,
+      webSecurity: true,
+      session: incognitoSession,
+    },
+    show: false,
+    icon: path.join(__dirname, 'icon_black.png'),
+  });
+
+  const send = (data) => { if (win && !win.isDestroyed()) win.webContents.send('shortcut-triggered', data); };
+  const sc = (accel, data) => ({ label: accel, accelerator: accel, click: () => send(data), visible: false });
+  const menu = Menu.buildFromTemplate([{
+    label: 'Shortcuts', submenu: [
+      sc('CmdOrCtrl+T', { key: 't', ctrl: true, shift: false }),
+      sc('CmdOrCtrl+W', { key: 'w', ctrl: true, shift: false }),
+      sc('CmdOrCtrl+N', { key: 'n', ctrl: true, shift: false }),
+      sc('CmdOrCtrl+Shift+N', { key: 'N', ctrl: true, shift: true }),
+      sc('CmdOrCtrl+Shift+T', { key: 'T', ctrl: true, shift: true }),
+      sc('CmdOrCtrl+L', { key: 'l', ctrl: true, shift: false }),
+      sc('CmdOrCtrl+R', { key: 'r', ctrl: true, shift: false }),
+      sc('F11', { key: 'F11', ctrl: false, shift: false }),
+    ]
+  }]);
+  Menu.setApplicationMenu(menu);
+
+  win.loadFile(path.join(__dirname, 'src', 'index.html'), { query: { incognito: 'true' } });
+
+  win.once('ready-to-show', () => {
+    win.show();
+    win.webContents.send('set-incognito', true);
+  });
+
+  win.on('maximize', () => win.webContents.send('window-state-changed', { maximized: true }));
+  win.on('unmaximize', () => win.webContents.send('window-state-changed', { maximized: false }));
+  win.on('closed', () => { windows = windows.filter(w => w !== win); });
+
+  setupDownloadManager(win);
+  windows.push(win);
   return win;
 }
 
@@ -1068,7 +1160,7 @@ ipcMain.handle('window:new', () => {
   createWindow();
 });
 ipcMain.handle('window:newIncognito', () => {
-  createWindow(true);
+  createIncognitoWindow();
 });
 
 // --- Settings ---
@@ -1153,6 +1245,84 @@ ipcMain.handle('pulse:resetStats', () => {
 // --- Config (legacy compat) ---
 ipcMain.handle('config:load', () => loadSettings());
 ipcMain.handle('config:save', (_, data) => { saveSettings(data); return true; });
+
+// --- Extensions ---
+ipcMain.handle('extensions:install', async () => {
+  const result = await dialog.showOpenDialog({
+    title: 'Выбери папку расширения',
+    properties: ['openDirectory']
+  });
+  if (result.canceled || !result.filePaths[0]) return { success: false, reason: 'cancelled' };
+  const srcPath = result.filePaths[0];
+  const extDir = path.join(app.getPath('userData'), 'extensions');
+  const name = path.basename(srcPath);
+  const destPath = path.join(extDir, name);
+  fs.cpSync(srcPath, destPath, { recursive: true });
+  try {
+    const ext = await session.defaultSession.loadExtension(destPath, { allowFileAccess: true });
+    const mapPath = path.join(app.getPath('userData'), 'extensions', '_map.json');
+    let map = {};
+    if (fs.existsSync(mapPath)) try { map = JSON.parse(fs.readFileSync(mapPath, 'utf8')); } catch (e) { }
+    map[ext.id] = name;
+    fs.writeFileSync(mapPath, JSON.stringify(map, null, 2));
+    return { success: true, name: ext.name, id: ext.id };
+  } catch (e) {
+    return { success: false, reason: e.message };
+  }
+});
+ipcMain.handle('extensions:list', () => {
+  const exts = session.defaultSession.getAllExtensions();
+  return Object.values(exts).map(e => ({
+    id: e.id,
+    name: e.name,
+    version: e.version,
+    description: (e.manifest && e.manifest.description) || '',
+    enabled: true,
+  }));
+});
+ipcMain.handle('extensions:remove', async (_, extId) => {
+  try {
+    await session.defaultSession.removeExtension(extId);
+    const extDir = path.join(app.getPath('userData'), 'extensions');
+    const mapPath = path.join(extDir, '_map.json');
+    if (fs.existsSync(mapPath)) {
+      try {
+        const map = JSON.parse(fs.readFileSync(mapPath, 'utf8'));
+        const folder = map[extId];
+        if (folder) {
+          const folderPath = path.join(extDir, folder);
+          if (fs.existsSync(folderPath)) fs.rmSync(folderPath, { recursive: true });
+          delete map[extId];
+          fs.writeFileSync(mapPath, JSON.stringify(map, null, 2));
+        }
+      } catch (e) { }
+    }
+    return { success: true };
+  } catch (e) {
+    return { success: false, reason: e.message };
+  }
+});
+
+// --- Default browser (Windows: явно передаём путь к exe для корректной регистрации) ---
+function isDefaultBrowser() {
+  return app.isDefaultProtocolClient('http') && app.isDefaultProtocolClient('https');
+}
+function openDefaultAppsSettings() {
+  shell.openExternal('ms-settings:defaultapps');
+}
+ipcMain.handle('browser:isDefault', () => isDefaultBrowser());
+ipcMain.handle('browser:setDefault', () => {
+  try {
+    const exePath = process.execPath;
+    app.setAsDefaultProtocolClient('http', exePath);
+    app.setAsDefaultProtocolClient('https', exePath);
+    openDefaultAppsSettings();
+    return { success: true, isDefault: isDefaultBrowser() };
+  } catch (e) {
+    return { success: false, reason: e.message };
+  }
+});
+ipcMain.on('browser:openSettings', () => openDefaultAppsSettings());
 
 // --- System ---
 ipcMain.handle('shell:openExternal', (_, url) => shell.openExternal(url));
@@ -1547,29 +1717,78 @@ ipcMain.handle('ai:getProvider', async () => {
   return settings.aiProvider || 'gemini'; // default to gemini for testing
 });
 
-// AI: Describe screenshot via GPT-4o REST API (Realtime API doesn't support images)
+function getGroqApiKey() {
+  const settings = loadSettings();
+  return settings.groqApiKey || process.env.GROQ_API_KEY || '';
+}
+
+// AI: Describe screenshot — OpenAI, Groq (vision) или Gemini
 ipcMain.handle('ai:describeScreen', async (_, base64Image) => {
   console.log('[AI] describeScreen called');
+  const settings = loadSettings();
+  const provider = settings.aiProvider || 'gemini';
+  let imgData = base64Image;
+  if (imgData.includes(',')) imgData = imgData.split(',')[1];
+
+  const prompt = 'Опиши ДЕТАЛЬНО что ты видишь на этом скриншоте браузера. Назови сайт, прочитай ВСЕ видимые заголовки, названия видео, текст кнопок — всё что можешь разобрать. Отвечай на русском.';
+
+  if (provider === 'groq') {
+    const apiKey = getGroqApiKey();
+    if (!apiKey) return { error: 'Groq API ключ не настроен. Добавьте в настройках.' };
+    return new Promise((resolve) => {
+      const body = JSON.stringify({
+        model: 'llama-3.2-90b-vision-preview',
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            { type: 'image_url', image_url: { url: `data:image/png;base64,${imgData}`, detail: 'auto' } }
+          ]
+        }],
+        max_tokens: 500
+      });
+      const options = {
+        hostname: 'api.groq.com',
+        path: '/openai/v1/chat/completions',
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(body),
+        },
+      };
+      const req = https.request(options, (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+          try {
+            const json = JSON.parse(data);
+            if (res.statusCode !== 200) resolve({ error: json.error?.message || `Error: ${res.statusCode}` });
+            else resolve({ description: json.choices?.[0]?.message?.content || 'Не удалось описать' });
+          } catch (e) { resolve({ error: 'Parse error' }); }
+        });
+      });
+      req.on('error', (err) => resolve({ error: err.message }));
+      req.write(body);
+      req.end();
+    });
+  }
+
   const apiKey = getOpenAIApiKey();
-  if (!apiKey) return { error: 'No API key' };
+  if (!apiKey) return { error: 'OpenAI API ключ не настроен' };
 
   return new Promise((resolve) => {
-    // Strip data URI prefix if present
-    let imgData = base64Image;
-    if (imgData.includes(',')) imgData = imgData.split(',')[1];
-
     const body = JSON.stringify({
       model: 'gpt-4o',
       messages: [{
         role: 'user',
         content: [
-          { type: 'text', text: 'Опиши ДЕТАЛЬНО что ты видишь на этом скриншоте браузера. Назови сайт, прочитай ВСЕ видимые заголовки, названия видео, текст кнопок — всё что можешь разобрать. Отвечай на русском.' },
+          { type: 'text', text: prompt },
           { type: 'image_url', image_url: { url: `data:image/png;base64,${imgData}`, detail: 'auto' } }
         ]
       }],
       max_tokens: 500
     });
-
     const options = {
       hostname: 'api.openai.com',
       path: '/v1/chat/completions',
@@ -1580,27 +1799,17 @@ ipcMain.handle('ai:describeScreen', async (_, base64Image) => {
         'Content-Length': Buffer.byteLength(body),
       },
     };
-
     const req = https.request(options, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
         try {
           const json = JSON.parse(data);
-          if (res.statusCode !== 200) {
-            console.log('[AI] describeScreen error:', res.statusCode);
-            resolve({ error: json.error?.message || `Error: ${res.statusCode}` });
-          } else {
-            const text = json.choices?.[0]?.message?.content || 'Не удалось описать';
-            console.log('[AI] describeScreen result:', text.substring(0, 80));
-            resolve({ description: text });
-          }
-        } catch (e) {
-          resolve({ error: 'Parse error' });
-        }
+          if (res.statusCode !== 200) resolve({ error: json.error?.message || `Error: ${res.statusCode}` });
+          else resolve({ description: json.choices?.[0]?.message?.content || 'Не удалось описать' });
+        } catch (e) { resolve({ error: 'Parse error' }); }
       });
     });
-
     req.on('error', (err) => resolve({ error: err.message }));
     req.write(body);
     req.end();
@@ -1929,23 +2138,29 @@ app.name = 'Gravity';
 app.setAppUserModelId('com.gravity.browser');
 
 app.whenReady().then(async () => {
-  // Set native theme to dark
   nativeTheme.themeSource = 'dark';
 
-  // Set YouTube dark mode cookie
   const ses = session.defaultSession;
   await ses.cookies.set({ url: 'https://www.youtube.com', name: 'PREF', value: 'f6=400', domain: '.youtube.com', path: '/' });
   await ses.cookies.set({ url: 'https://www.google.com', name: 'PREF', value: 'f6=400', domain: '.google.com', path: '/' });
 
-  // First run: show import wizard
+  try { await loadExtensions(); } catch (e) { console.error('Extensions load error:', e.message); }
+
   if (isFirstRun()) {
     await createImportWindow();
   }
 
   createWindow();
+
+  setTimeout(() => {
+    if (!isDefaultBrowser() && mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('browser:notDefault');
+    }
+  }, 2000);
 });
 
 app.on('window-all-closed', () => {
+  globalShortcut.unregisterAll();
   if (process.platform !== 'darwin') app.quit();
 });
 

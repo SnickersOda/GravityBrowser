@@ -21,6 +21,7 @@
         commandPaletteOpen: false,
         menuOpen: false,
         downloadsList: [],
+        downloadsMap: new Map(), // savePath -> { fileName, savePath, percent, state }
     };
 
     const $ = (s) => document.querySelector(s);
@@ -135,7 +136,6 @@
         sidebarPanel: $('#sidebar-panel'),
         webviewContainer: $('#webview-container'),
         statusText: $('#status-text'),
-        statusRam: $('#status-ram'),
         statusZoom: $('#status-zoom'),
         commandPalette: $('#command-palette'),
         commandInput: $('#command-input'),
@@ -154,6 +154,7 @@
         downloadBarStats: $('#download-bar-stats'),
         downloadBarFill: $('#download-bar-fill'),
         downloadBarClose: $('#download-bar-close'),
+        downloadsBar: $('#downloads-bar'),
         btnFrost: $('#btn-frost'),
         frostBadge: $('#frost-badge'),
         btnPulse: $('#btn-pulse'),
@@ -161,6 +162,7 @@
         btnScreenshot: $('#btn-screenshot'),
         btnMenu: $('#btn-menu'),
         btnDownloads: $('#btn-downloads'),
+        btnExtensions: $('#btn-extensions'),
         downloadsPanel: $('#downloads-panel'),
         downloadsPanelList: $('#downloads-panel-list'),
         downloadsOpenFolder: $('#downloads-open-folder'),
@@ -210,6 +212,9 @@
     }
     function settingsUrl() {
         return `file://${window.location.pathname.replace(/[^/\\]*$/, '')}settings.html`.replace(/\\/g, '/');
+    }
+    function extensionsUrl() {
+        return `file://${window.location.pathname.replace(/[^/\\]*$/, '')}extensions.html`.replace(/\\/g, '/');
     }
 
     // ============================================================
@@ -318,7 +323,7 @@
             dom.btnBack.disabled = !tab.canGoBack;
             dom.btnForward.disabled = !tab.canGoForward;
             updateSecurityIcon(tab.url);
-            dom.statusZoom.textContent = Math.round((state.zoomLevels[id] || 1) * 100) + '%';
+            if (dom.statusZoom) dom.statusZoom.textContent = Math.round((state.zoomLevels[id] || 1) * 100) + '%';
         }
         if (state.frozenTabs.has(id)) { state.frozenTabs.delete(id); updateFrostBadge(); }
     }
@@ -442,7 +447,7 @@
             if (state.activeTabId === id) dom.loadingBar.classList.remove('active');
         });
 
-        wv.addEventListener('update-target-url', (e) => { dom.statusText.textContent = e.url || ''; });
+        wv.addEventListener('update-target-url', (e) => { if (dom.statusText) dom.statusText.textContent = e.url || ''; });
 
         wv.addEventListener('media-started-playing', () => {
             const t = state.tabs.find(x => x.id === id); if (t) t.audible = true;
@@ -678,7 +683,7 @@
         const items = [
             { label: t('menuNewTab'), icon: ICONS.newTab, kbd: 'Ctrl+T', action: () => createTab() },
             { label: t('menuNewWindow'), icon: ICONS.window, kbd: 'Ctrl+N', action: () => window.gravity.window.newWindow() },
-            { label: t('menuIncognito'), icon: ICONS.incognito, kbd: 'Ctrl+Shift+N', action: () => createIncognitoTab() },
+            { label: t('menuIncognito'), icon: ICONS.incognito, kbd: 'Ctrl+Shift+N', action: () => window.gravity.window.newIncognito() },
             { separator: true },
             { label: t('menuBookmarks'), icon: ICONS.bookmark, action: () => { state.sidebarOpen = true; dom.sidebar.style.display = ''; renderSidebarPanel('bookmarks'); } },
             { label: t('menuHistory'), icon: ICONS.history, kbd: 'Ctrl+H', action: () => { state.sidebarOpen = true; dom.sidebar.style.display = ''; renderSidebarPanel('history'); } },
@@ -729,7 +734,7 @@
     function renderCommands(query) {
         const cmds = [
             { title: t('menuNewTab'), kbd: 'Ctrl+T', action: () => createTab() },
-            { title: t('menuIncognito'), kbd: 'Ctrl+Shift+N', action: () => createIncognitoTab() },
+            { title: t('menuIncognito'), kbd: 'Ctrl+Shift+N', action: () => window.gravity.window.newIncognito() },
             { title: t('menuSettings'), action: () => createTab(settingsUrl(), { title: t('menuSettings') }) },
             { title: t('menuHistory'), kbd: 'Ctrl+H', action: () => { state.sidebarOpen = true; dom.sidebar.style.display = ''; renderSidebarPanel('history'); } },
             { title: t('menuDownloads'), kbd: 'Ctrl+J', action: () => { state.sidebarOpen = true; dom.sidebar.style.display = ''; renderSidebarPanel('downloads'); } },
@@ -851,7 +856,7 @@
         let level = Math.max(0.25, Math.min(3, (state.zoomLevels[id] || 1) + delta));
         state.zoomLevels[id] = level; wv.setZoomFactor(level);
         const pct = Math.round(level * 100) + '%';
-        dom.zoomLevel.textContent = pct; dom.statusZoom.textContent = pct;
+        dom.zoomLevel.textContent = pct; if (dom.statusZoom) dom.statusZoom.textContent = pct;
         dom.zoomIndicator.style.display = '';
         clearTimeout(zoomHideTimer);
         zoomHideTimer = setTimeout(() => { dom.zoomIndicator.style.display = 'none'; }, 2000);
@@ -859,7 +864,7 @@
     function resetZoom() {
         state.zoomLevels[state.activeTabId] = 1;
         const wv = document.getElementById('wv-' + state.activeTabId); if (wv) wv.setZoomFactor(1);
-        dom.zoomLevel.textContent = '100%'; dom.statusZoom.textContent = '100%'; dom.zoomIndicator.style.display = 'none';
+        dom.zoomLevel.textContent = '100%'; if (dom.statusZoom) dom.statusZoom.textContent = '100%'; dom.zoomIndicator.style.display = 'none';
     }
 
     // ============================================================
@@ -968,23 +973,145 @@
         else toast('Ошибка скриншота', 'error');
     }
 
-    // URL Autocomplete
-    let acTimer;
-    async function showAutocomplete(q) {
-        if (!q || q.length < 2) { dom.urlAutocomplete.style.display = 'none'; return; }
-        clearTimeout(acTimer);
-        acTimer = setTimeout(async () => {
-            const res = await window.gravity.history.search(q);
-            if (!res.length) { dom.urlAutocomplete.style.display = 'none'; return; }
-            dom.urlAutocomplete.innerHTML = '';
-            res.slice(0, 8).forEach(r => {
-                const el = document.createElement('div'); el.className = 'url-autocomplete-item';
-                el.innerHTML = `<img src="${favicon(r.url)}" onerror="this.style.display='none'"><span class="url-autocomplete-title">${r.title}</span><span class="url-autocomplete-url">${r.url}</span>`;
-                el.addEventListener('click', () => { dom.urlInput.value = r.url; navigate(r.url); dom.urlAutocomplete.style.display = 'none'; });
-                dom.urlAutocomplete.appendChild(el);
-            });
-            dom.urlAutocomplete.style.display = '';
-        }, 200);
+    // URL Autocomplete — Google Suggest + history + bookmarks
+    let suggestionIndex = -1;
+    let suggestionsData = [];
+    let suggestTimeout = null;
+
+    async function fetchGoogleSuggestions(query) {
+        if (!query.trim()) return [];
+        try {
+            const url = `https://suggestqueries.google.com/complete/search?client=firefox&q=${encodeURIComponent(query)}&hl=ru`;
+            const res = await fetch(url);
+            const data = await res.json();
+            return (data[1] || []).slice(0, 6).map(text => ({ type: 'search', text, icon: 'search' }));
+        } catch (e) { return []; }
+    }
+
+    function searchHistorySuggestions(query) {
+        return window.gravity.history.search(query).then(h => 
+            h.slice(0, 3).map(entry => ({ type: 'history', text: entry.title || entry.url, url: entry.url, icon: 'clock' }))
+        );
+    }
+
+    function searchBookmarksSuggestions(query) {
+        return window.gravity.bookmarks.get().then(bms => {
+            const q = query.toLowerCase();
+            return bms
+                .filter(b => (b.title || '').toLowerCase().includes(q) || (b.url || '').toLowerCase().includes(q))
+                .slice(0, 2)
+                .map(b => ({ type: 'bookmark', text: b.title || b.url, url: b.url, icon: 'star' }));
+        });
+    }
+
+    async function getSuggestions(query) {
+        if (!query.trim()) return [];
+        const directSearch = [{ type: 'search', text: query, label: `${query} — Поиск Google`, icon: 'search', isFirst: true }];
+        const [googleSuggests, historyResults, bookmarkResults] = await Promise.all([
+            fetchGoogleSuggestions(query),
+            searchHistorySuggestions(query),
+            searchBookmarksSuggestions(query),
+        ]);
+        const combined = [
+            ...historyResults,
+            ...bookmarkResults,
+            ...googleSuggests.filter(s => s.text.toLowerCase() !== query.toLowerCase()),
+        ];
+        const seen = new Set([query.toLowerCase()]);
+        const deduped = combined.filter(s => {
+            const key = (s.url || s.text).toLowerCase();
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+        return [...directSearch, ...deduped.slice(0, 7)];
+    }
+
+    function getSuggestionIconSVG(type) {
+        const icons = {
+            search: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M11 11l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+            clock: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M8 5v3l2 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+            star: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2l1.8 3.6L14 6.3l-3 2.9.7 4.1L8 11.4l-3.7 1.9.7-4.1-3-2.9 4.2-.7L8 2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+        };
+        return icons[type] || icons.search;
+    }
+
+    function highlightMatch(text, query) {
+        const t = String(text);
+        const idx = t.toLowerCase().indexOf(query.toLowerCase());
+        if (idx === -1) return escapeHtml(t);
+        return escapeHtml(t.slice(0, idx)) + '<strong>' + escapeHtml(t.slice(idx, idx + query.length)) + '</strong>' + escapeHtml(t.slice(idx + query.length));
+    }
+
+    function truncateUrl(url) {
+        try {
+            const u = new URL(url);
+            return u.hostname + (u.pathname !== '/' ? u.pathname.slice(0, 30) : '');
+        } catch (e) { return String(url).slice(0, 40); }
+    }
+
+    async function onAddressInput(query) {
+        clearTimeout(suggestTimeout);
+        if (!query.trim()) { hideSuggestions(); return; }
+        suggestTimeout = setTimeout(async () => {
+            suggestionsData = await getSuggestions(query);
+            suggestionIndex = -1;
+            renderSuggestions(suggestionsData, query);
+        }, 150);
+    }
+
+    function renderSuggestions(suggestions, query) {
+        if (!dom.urlAutocomplete) return;
+        if (!suggestions.length) { hideSuggestions(); return; }
+        dom.urlAutocomplete.innerHTML = suggestions.map((s, i) => `
+            <div class="suggestion-item url-autocomplete-item ${s.isFirst ? 'suggestion-first' : ''}" data-index="${i}">
+                <div class="suggestion-icon">${getSuggestionIconSVG(s.icon)}</div>
+                <div class="suggestion-text">
+                    ${s.isFirst ? `<span class="suggestion-label">${escapeHtml(s.label)}</span>` : `<span class="suggestion-match">${highlightMatch(s.text, query)}</span>${s.url ? `<span class="suggestion-url">${escapeHtml(truncateUrl(s.url))}</span>` : ''}`}
+                </div>
+            </div>
+        `).join('');
+        dom.urlAutocomplete.classList.add('suggestions-dropdown');
+        dom.urlAutocomplete.style.display = 'block';
+        dom.urlAutocomplete.querySelectorAll('.suggestion-item').forEach((el, i) => {
+            el.addEventListener('mousedown', (e) => { e.preventDefault(); selectSuggestion(i); });
+        });
+    }
+
+    function selectSuggestion(index) {
+        const s = suggestionsData[index];
+        if (!s) return;
+        if (s.url) navigate(s.url);
+        else navigate(`https://www.google.com/search?q=${encodeURIComponent(s.text)}`);
+        hideSuggestions();
+    }
+
+    function hideSuggestions() {
+        if (dom.urlAutocomplete) { dom.urlAutocomplete.style.display = 'none'; dom.urlAutocomplete.classList.remove('suggestions-dropdown'); }
+        suggestionIndex = -1;
+    }
+
+    function handleAddressKeydown(e) {
+        const items = dom.urlAutocomplete && dom.urlAutocomplete.style.display !== 'none' ? dom.urlAutocomplete.querySelectorAll('.suggestion-item') : [];
+        if (e.key === 'ArrowDown' && items.length) {
+            e.preventDefault();
+            suggestionIndex = Math.min(suggestionIndex + 1, items.length - 1);
+            items.forEach((el, i) => el.classList.toggle('selected', i === suggestionIndex));
+            if (suggestionsData[suggestionIndex]) dom.urlInput.value = suggestionsData[suggestionIndex].text;
+        } else if (e.key === 'ArrowUp' && items.length) {
+            e.preventDefault();
+            suggestionIndex = Math.max(suggestionIndex - 1, -1);
+            items.forEach((el, i) => el.classList.toggle('selected', i === suggestionIndex));
+        } else if (e.key === 'Escape') {
+            hideSuggestions();
+        } else if (e.key === 'Enter' && suggestionIndex >= 0 && items.length) {
+            e.preventDefault();
+            selectSuggestion(suggestionIndex);
+        }
+    }
+
+    function showAutocomplete(q) {
+        onAddressInput(q);
     }
 
     // ============================================================
@@ -1072,7 +1199,7 @@
         if (ctrl && (key === 't' || key === 'T') && !shift) { createTab(); return true; }
         if (ctrl && (key === 'w' || key === 'W') && !shift) { closeTab(state.activeTabId); return true; }
         if (ctrl && !shift && (key === 'n' || key === 'N')) { window.gravity.window.newWindow(); return true; }
-        if (ctrl && shift && (key === 'n' || key === 'N')) { createIncognitoTab(); return true; }
+        if (ctrl && shift && (key === 'n' || key === 'N')) { window.gravity.window.newIncognito(); return true; }
         if (ctrl && shift && (key === 't' || key === 'T')) { restoreClosedTab(); return true; }
         if (ctrl && (key === 'k' || key === 'K') && !shift) { toggleCommandPalette(); return true; }
         if (ctrl && (key === 'f' || key === 'F') && !shift) { toggleFindBar(); return true; }
@@ -1153,15 +1280,23 @@
         dom.tabStrip.addEventListener('wheel', (e) => { e.preventDefault(); dom.tabStrip.scrollLeft += e.deltaY; }, { passive: false });
 
         dom.urlInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') { navigate(dom.urlInput.value); dom.urlAutocomplete.style.display = 'none'; }
-            if (e.key === 'Escape') { dom.urlInput.blur(); dom.urlAutocomplete.style.display = 'none'; }
+            handleAddressKeydown(e);
+            if (e.defaultPrevented) return;
+            if (e.key === 'Enter') { navigate(dom.urlInput.value); hideSuggestions(); }
+            if (e.key === 'Escape') { dom.urlInput.blur(); hideSuggestions(); }
         });
         dom.urlInput.addEventListener('input', () => {
             dom.urlClear.style.display = dom.urlInput.value ? 'flex' : 'none';
             showAutocomplete(dom.urlInput.value);
         });
-        dom.urlInput.addEventListener('focus', () => dom.urlInput.select());
-        dom.urlInput.addEventListener('blur', () => setTimeout(() => { dom.urlAutocomplete.style.display = 'none'; }, 200));
+        dom.urlInput.addEventListener('focus', () => {
+            dom.urlInput.select();
+            if (dom.urlInput.value.trim()) onAddressInput(dom.urlInput.value);
+        });
+        dom.urlInput.addEventListener('blur', () => setTimeout(hideSuggestions, 200));
+        document.addEventListener('mousedown', (e) => {
+            if (!e.target.closest('#url-bar-container') && !e.target.closest('#url-autocomplete')) hideSuggestions();
+        });
         dom.urlClear.addEventListener('click', () => { dom.urlInput.value = ''; dom.urlInput.focus(); });
 
         dom.urlCopy.addEventListener('click', () => { navigator.clipboard.writeText(dom.urlInput.value || ''); toast('URL скопирован'); });
@@ -1188,6 +1323,7 @@
         dom.btnScreenshot.addEventListener('click', takeScreenshot);
 
         // Downloads button
+        dom.btnExtensions.addEventListener('click', () => createTab(extensionsUrl(), { title: 'Расширения' }));
         dom.btnDownloads.addEventListener('click', (e) => {
             e.stopPropagation();
             const panel = dom.downloadsPanel;
@@ -1277,47 +1413,132 @@
         window.gravity.on.openUrl((url) => createTab(url));
         window.gravity.on.toast((data) => toast(data.message, data.type));
 
-        // Download progress bar + panel
+        window.gravity.browser.onNotDefault(() => {
+            if (!localStorage.getItem('gravity-default-dismissed')) showDefaultBrowserBanner();
+        });
+        document.getElementById('default-banner-set-btn')?.addEventListener('click', async () => {
+            const r = await window.gravity.browser.setDefault();
+            if (r && r.isDefault) dismissDefaultBrowserBanner();
+            else if (r && !r.isDefault) showToast('Выбери Gravity в открывшихся настройках Windows');
+        });
+        document.getElementById('default-banner-close')?.addEventListener('click', dismissDefaultBrowserBanner);
+
+        // Downloads bar (bottom, multi-item) — new events from main
+        window.gravity.downloads.onStart((d) => {
+            state.downloadsMap.set(d.savePath, { fileName: d.fileName, savePath: d.savePath, percent: 0, state: 'progressing' });
+            state.downloadsList.unshift({ filename: d.fileName, path: d.savePath, receivedBytes: 0, totalBytes: d.totalBytes || 0, state: 'progressing' });
+            renderDownloadsBar();
+            if (dom.downloadsBar) dom.downloadsBar.classList.add('visible');
+        });
+        window.gravity.downloads.onDownloadProgress((d) => {
+            const cur = state.downloadsMap.get(d.savePath);
+            if (cur) {
+                cur.percent = d.percent || 0;
+                cur.state = d.state === 'interrupted' ? 'interrupted' : 'progressing';
+            }
+            const listItem = state.downloadsList.find(x => x.path === d.savePath);
+            if (listItem) {
+                listItem.receivedBytes = d.receivedBytes;
+                listItem.totalBytes = d.totalBytes;
+                listItem.state = d.state === 'interrupted' ? 'interrupted' : 'progressing';
+            }
+            renderDownloadsBar();
+            if (dom.downloadsPanel.style.display !== 'none') renderDownloadsPanel();
+        });
+        window.gravity.downloads.onDone((d) => {
+            const cur = state.downloadsMap.get(d.savePath);
+            if (cur) {
+                cur.state = d.state;
+                cur.percent = d.state === 'completed' ? 100 : cur.percent;
+            }
+            const listItem = state.downloadsList.find(x => x.path === d.savePath);
+            if (listItem) {
+                listItem.state = d.state;
+                listItem.receivedBytes = listItem.totalBytes;
+            }
+            renderDownloadsBar();
+            if (dom.downloadsPanel.style.display !== 'none') renderDownloadsPanel();
+            if (state.sidebarPanel === 'downloads') renderSidebarPanel('downloads');
+        });
+
+        // Legacy download progress (single bar) — keep for compatibility if main sends old events
         window.gravity.downloads.onProgress((d) => {
             dom.downloadBar.style.display = '';
             dom.downloadBarName.textContent = d.filename;
             const pct = d.totalBytes > 0 ? Math.round((d.receivedBytes / d.totalBytes) * 100) : 0;
             dom.downloadBarFill.style.width = pct + '%';
             dom.downloadBarStats.textContent = `${formatBytes(d.receivedBytes)} / ${formatBytes(d.totalBytes)} — ${pct}%`;
-            // Update downloads panel list
             const existing = state.downloadsList.find(x => x.filename === d.filename);
-            if (existing) {
-                existing.receivedBytes = d.receivedBytes;
-                existing.totalBytes = d.totalBytes;
-                existing.state = 'progressing';
-            } else {
-                state.downloadsList.unshift({ filename: d.filename, receivedBytes: d.receivedBytes, totalBytes: d.totalBytes, state: 'progressing' });
-            }
+            if (existing) { existing.receivedBytes = d.receivedBytes; existing.totalBytes = d.totalBytes; existing.state = 'progressing'; }
+            else { state.downloadsList.unshift({ filename: d.filename, receivedBytes: d.receivedBytes, totalBytes: d.totalBytes, state: 'progressing' }); }
             if (dom.downloadsPanel.style.display !== 'none') renderDownloadsPanel();
         });
-
         window.gravity.downloads.onComplete((d) => {
             dom.downloadBarName.textContent = d.filename;
             dom.downloadBarFill.style.width = '100%';
             dom.downloadBarStats.textContent = 'Готово!';
             toast(`Загружено: ${d.filename}`, 'success');
-            // Auto-hide after 4 seconds
             setTimeout(() => { dom.downloadBar.style.display = 'none'; }, 4000);
-            // Update panel list
             const existing = state.downloadsList.find(x => x.filename === d.filename);
-            if (existing) {
-                existing.state = 'completed';
-                existing.totalBytes = d.totalBytes || existing.totalBytes || existing.receivedBytes;
-            } else {
-                state.downloadsList.unshift({ filename: d.filename, receivedBytes: d.totalBytes || 0, totalBytes: d.totalBytes || 0, state: 'completed' });
-            }
+            if (existing) { existing.state = 'completed'; existing.totalBytes = d.totalBytes || existing.totalBytes || existing.receivedBytes; }
+            else { state.downloadsList.unshift({ filename: d.filename, receivedBytes: d.totalBytes || 0, totalBytes: d.totalBytes || 0, state: 'completed' }); }
             if (dom.downloadsPanel.style.display !== 'none') renderDownloadsPanel();
             if (state.sidebarPanel === 'downloads') renderSidebarPanel('downloads');
         });
+
+        // Delegated clicks for downloads bar
+        if (dom.downloadsBar) {
+            dom.downloadsBar.addEventListener('click', (e) => {
+                const item = e.target.closest('.download-item');
+                const path = item?.dataset?.savePath;
+                if (!path) return;
+                if (e.target.closest('.download-name')) {
+                    window.gravity.downloads.open(path);
+                } else if (e.target.closest('.download-btn')?.dataset?.action === 'open') {
+                    window.gravity.downloads.open(path);
+                } else if (e.target.closest('.download-btn')?.dataset?.action === 'showInFolder') {
+                    window.gravity.downloads.showInFolder(path);
+                } else if (e.target.closest('.download-close')) {
+                    state.downloadsMap.delete(path);
+                    renderDownloadsBar();
+                    if (state.downloadsMap.size === 0) dom.downloadsBar.classList.remove('visible');
+                }
+            });
+        }
     }
 
-    // RAM monitor
-    setInterval(() => { if (performance.memory) dom.statusRam.textContent = 'RAM: ' + formatBytes(performance.memory.usedJSHeapSize); }, 5000);
+    function renderDownloadsBar() {
+        if (!dom.downloadsBar) return;
+        const list = [...state.downloadsMap.entries()].map(([savePath, dl]) => ({ ...dl, savePath }));
+        if (!list.length) {
+            dom.downloadsBar.innerHTML = '';
+            dom.downloadsBar.classList.remove('visible');
+            return;
+        }
+        dom.downloadsBar.innerHTML = list.map(dl => {
+            const statusText = dl.state === 'completed' ? '✓ Готово' : dl.state === 'interrupted' ? 'Ошибка' : 'Загрузка...';
+            const statusClass = dl.state === 'completed' ? 'done' : dl.state === 'interrupted' ? 'error' : '';
+            return `<div class="download-item" data-save-path="${escapeHtmlAttr(dl.savePath)}">
+                <span class="download-name" title="${escapeHtmlAttr(dl.fileName)}">${escapeHtml(dl.fileName)}</span>
+                <div class="download-progress"><div class="download-progress-fill ${dl.state === 'completed' ? 'done' : ''}" style="width:${dl.percent}%"></div></div>
+                <span class="download-percent">${dl.percent}%</span>
+                <span class="download-status ${statusClass}">${statusText}</span>
+                <button class="download-btn" type="button" data-action="open">Открыть</button>
+                <button class="download-btn" type="button" data-action="showInFolder">В папке</button>
+                <button class="download-close" type="button" title="Убрать">✕</button>
+            </div>`;
+        }).join('');
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    function escapeHtmlAttr(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
 
     // ============================================================
     // AI AGENT — Full Browser Control
@@ -1412,6 +1633,9 @@
 
             if (provider === 'gemini') {
                 await connectGeminiVoice();
+            } else if (provider === 'groq') {
+                dom.aiOrbStatus.textContent = 'Groq не поддерживает голосовой режим. Выберите OpenAI или Gemini в настройках.';
+                setTimeout(closeAiVoiceAgent, 4000);
             } else {
                 await connectOpenAIVoice();
             }
@@ -1955,7 +2179,31 @@
     // ============================================================
     // INIT
     // ============================================================
+    function applyIncognitoUI() {
+        document.body.classList.toggle('incognito-mode', state.isIncognito);
+        document.title = state.isIncognito ? 'Gravity — Инкогнито' : 'Gravity';
+        const badge = document.getElementById('incognito-badge');
+        if (badge) badge.style.display = state.isIncognito ? 'inline-flex' : 'none';
+    }
+
+    function showDefaultBrowserBanner() {
+        const banner = document.getElementById('default-browser-banner');
+        if (banner) banner.style.display = 'flex';
+    }
+    function dismissDefaultBrowserBanner() {
+        const banner = document.getElementById('default-browser-banner');
+        if (banner) banner.style.display = 'none';
+        localStorage.setItem('gravity-default-dismissed', '1');
+    }
+    function showToast(msg, duration) {
+        toast(msg, 'info');
+    }
+
     async function init() {
+        state.isIncognito = new URLSearchParams(window.location.search).get('incognito') === 'true';
+        applyIncognitoUI();
+        window.gravity.on.incognito((val) => { state.isIncognito = !!val; applyIncognitoUI(); });
+
         state.settings = await window.gravity.settings.load();
         try { _preloadPath = await window.gravity.app.getPreloadPath(); } catch (e) { }
         applySettings();

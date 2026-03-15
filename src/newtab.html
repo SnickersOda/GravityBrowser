@@ -302,6 +302,107 @@
         [data-theme="light"] .quick-link-title {
             color: rgba(0, 0, 0, 0.55);
         }
+
+        .quick-link-icon-wrap {
+            position: relative;
+            width: 56px;
+            height: 56px;
+        }
+        .quick-link-icon-fallback {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.5);
+        }
+        .shortcut-remove {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            width: 18px;
+            height: 18px;
+            background: rgba(20, 20, 20, 0.95);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: rgba(255,255,255,0.4);
+            opacity: 0;
+            transform: scale(0.7);
+            transition: opacity 0.15s, transform 0.2s;
+        }
+        .quick-link:hover .shortcut-remove {
+            opacity: 1;
+            transform: scale(1);
+        }
+        .shortcut-remove:hover {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+        }
+        .shortcut-add {
+            background: none;
+            border: none;
+            font-family: inherit;
+            cursor: pointer;
+        }
+        .shortcut-icon-add {
+            border-style: dashed !important;
+            color: rgba(255,255,255,0.25);
+        }
+        .shortcut-add:hover .shortcut-icon-add { color: rgba(255,255,255,0.5); }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-card {
+            background: #101010;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            width: 360px;
+            box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+        }
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 20px 0;
+        }
+        .modal-title { font-size: 15px; font-weight: 700; color: rgba(255,255,255,0.9); }
+        .modal-close {
+            width: 28px; height: 28px; border-radius: 7px; background: transparent; border: none;
+            color: rgba(255,255,255,0.3); cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .modal-close:hover { background: rgba(255,255,255,0.08); color: #fff; }
+        .modal-body { padding: 16px 20px; }
+        .modal-label { display: block; font-size: 12px; color: rgba(255,255,255,0.5); margin-bottom: 6px; }
+        .modal-input {
+            width: 100%; padding: 10px 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px; color: #fff; font-size: 14px; font-family: inherit; outline: none;
+        }
+        .modal-input:focus { border-color: rgba(255,255,255,0.25); }
+        .modal-footer { display: flex; gap: 8px; justify-content: flex-end; padding: 0 20px 20px; }
+        .modal-btn-cancel {
+            padding: 9px 18px; background: transparent; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
+            color: rgba(255,255,255,0.6); font-size: 13px; cursor: pointer; font-family: inherit;
+        }
+        .modal-btn-cancel:hover { border-color: rgba(255,255,255,0.25); color: #fff; }
+        .modal-btn-confirm {
+            padding: 9px 18px; background: #fff; color: #000; border: none; border-radius: 8px;
+            font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit;
+        }
+        .modal-btn-confirm:hover { opacity: 0.95; }
     </style>
 </head>
 
@@ -327,42 +428,147 @@
         <div class="quick-links" id="quick-links"></div>
     </div>
 
+    <div id="add-shortcut-modal" class="modal-overlay" style="display:none">
+        <div class="modal-card" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <span class="modal-title">Добавить ярлык</span>
+                <button class="modal-close" type="button" onclick="closeAddShortcutDialog()">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <label class="modal-label">Адрес сайта</label>
+                <input id="shortcut-url-input" class="modal-input" type="text" placeholder="https://example.com">
+                <label class="modal-label" style="margin-top:12px">Название (необязательно)</label>
+                <input id="shortcut-name-input" class="modal-input" type="text" placeholder="Мой сайт">
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn-cancel" type="button" onclick="closeAddShortcutDialog()">Отмена</button>
+                <button class="modal-btn-confirm" type="button" onclick="confirmAddShortcut()">Добавить</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const defaultLinks = [
-            { url: 'https://vk.com', title: 'ВКонтакте' },
-            { url: 'https://www.youtube.com', title: 'YouTube' },
-            { url: 'https://telegram.org', title: 'Telegram' },
-            { url: 'https://github.com', title: 'GitHub' },
             { url: 'https://www.google.com', title: 'Google' },
-            { url: 'https://mail.google.com', title: 'Gmail' },
-            { url: 'https://chatgpt.com', title: 'ChatGPT' },
-            { url: 'https://music.yandex.ru', title: 'Яндекс Музыка' },
+            { url: 'https://www.youtube.com', title: 'YouTube' },
+            { url: 'https://github.com', title: 'GitHub' },
+            { url: 'https://vk.com', title: 'ВКонтакте' },
+            { url: 'https://telegram.org', title: 'Telegram' },
         ];
 
-        function renderLinks(links) {
-            const container = document.getElementById('quick-links');
-            container.innerHTML = '';
-            links.forEach(link => {
-                const a = document.createElement('a');
-                a.className = 'quick-link';
-                a.href = link.url;
-                const hostname = new URL(link.url).hostname;
-                a.innerHTML = `
-          <div class="quick-link-icon">
-            <img src="https://www.google.com/s2/favicons?domain=${hostname}&sz=128" alt=""
-              onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22white%22 stroke-width=%222%22><circle cx=%2212%22 cy=%2212%22 r=%2210%22/></svg>'">
-          </div>
-          <span class="quick-link-title">${link.title}</span>
-        `;
-                a.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    window.location.href = link.url;
-                });
-                container.appendChild(a);
-            });
+        function normalizeUrl(url) {
+            const s = String(url).trim();
+            if (!s) return '';
+            if (/^https?:\/\//i.test(s)) return s;
+            return 'https://' + s;
+        }
+        function getFaviconUrl(url) {
+            try { return 'https://www.google.com/s2/favicons?domain=' + new URL(normalizeUrl(url)).hostname + '&sz=64'; } catch (e) { return ''; }
+        }
+        function getShortTitle(title, url) {
+            if (title && title.trim()) return title.length > 12 ? title.slice(0, 11) + '…' : title;
+            try { return new URL(normalizeUrl(url)).hostname.replace('www.', '').split('.')[0]; } catch (e) { return url.slice(0, 12); }
+        }
+        function escapeHtml(str) {
+            if (!str) return ''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
         }
 
-        renderLinks(defaultLinks);
+        let shortcuts = [];
+
+        function loadShortcuts() {
+            if (window.gravity && window.gravity.quicklinks) {
+                return window.gravity.quicklinks.get().then(links => {
+                    shortcuts = (links || []).map((l, i) => ({ id: (l.url || '') + i, title: l.title || '', url: l.url || '', favicon: getFaviconUrl(l.url) }));
+                    return shortcuts;
+                });
+            }
+            shortcuts = defaultLinks.map((l, i) => ({ id: l.url + i, title: l.title, url: l.url, favicon: getFaviconUrl(l.url) }));
+            return Promise.resolve(shortcuts);
+        }
+
+        function saveShortcuts() {
+            const toSave = shortcuts.map(s => ({ url: s.url, title: s.title || getShortTitle(s.title, s.url) }));
+            if (window.gravity && window.gravity.quicklinks) window.gravity.quicklinks.save(toSave);
+        }
+
+        function addShortcut(title, url) {
+            const u = normalizeUrl(url);
+            if (!u) return;
+            if (shortcuts.length >= 10) return;
+            const id = u + Date.now();
+            shortcuts.push({ id, title: (title || '').trim(), url: u, favicon: getFaviconUrl(u) });
+            saveShortcuts();
+            renderShortcuts();
+        }
+
+        function removeShortcut(index) {
+            if (index < 0 || index >= shortcuts.length) return;
+            shortcuts.splice(index, 1);
+            saveShortcuts();
+            renderShortcuts();
+        }
+
+        function openAddShortcutDialog() {
+            document.getElementById('add-shortcut-modal').style.display = 'flex';
+            document.getElementById('shortcut-url-input').value = '';
+            document.getElementById('shortcut-name-input').value = '';
+            document.getElementById('shortcut-url-input').focus();
+        }
+        function closeAddShortcutDialog() {
+            document.getElementById('add-shortcut-modal').style.display = 'none';
+        }
+        function confirmAddShortcut() {
+            const url = document.getElementById('shortcut-url-input').value.trim();
+            const title = document.getElementById('shortcut-name-input').value.trim();
+            if (!url) return;
+            addShortcut(title, url);
+            closeAddShortcutDialog();
+        }
+
+        function renderShortcuts() {
+            const container = document.getElementById('quick-links');
+            container.innerHTML = '';
+            shortcuts.forEach(s => {
+                const a = document.createElement('a');
+                a.className = 'quick-link';
+                a.href = s.url;
+                const title = getShortTitle(s.title, s.url);
+                a.innerHTML = `
+          <div class="quick-link-icon-wrap">
+            <div class="quick-link-icon">
+              ${s.favicon ? '<img src="' + escapeHtml(s.favicon) + '" alt="" onerror="this.style.display=\'none\'; this.nextElementSibling && (this.nextElementSibling.style.display=\'flex\')">' : ''}
+              <div class="quick-link-icon-fallback" style="${s.favicon ? 'display:none' : ''}">${escapeHtml(title.charAt(0).toUpperCase())}</div>
+            </div>
+            <button class="shortcut-remove" type="button" title="Удалить" data-index="${shortcuts.indexOf(s)}">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1 1l8 8M9 1L1 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+          <span class="quick-link-title">${escapeHtml(title)}</span>
+        `;
+                a.addEventListener('click', (e) => { if (!e.target.closest('.shortcut-remove')) { e.preventDefault(); window.location.href = s.url; } });
+                a.querySelector('.shortcut-remove').addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); removeShortcut(parseInt(e.currentTarget.dataset.index, 10)); });
+                container.appendChild(a);
+            });
+            if (shortcuts.length < 10) {
+                const addEl = document.createElement('button');
+                addEl.type = 'button';
+                addEl.className = 'quick-link shortcut-add';
+                addEl.innerHTML = `
+          <div class="quick-link-icon-wrap"><div class="quick-link-icon shortcut-icon-add"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div></div>
+          <span class="quick-link-title">Добавить</span>
+        `;
+                addEl.addEventListener('click', (e) => { e.preventDefault(); openAddShortcutDialog(); });
+                container.appendChild(addEl);
+            }
+        }
+
+        loadShortcuts().then(() => renderShortcuts());
+
+        document.getElementById('add-shortcut-modal').addEventListener('click', function(e) { if (e.target === this) closeAddShortcutDialog(); });
+        document.getElementById('shortcut-url-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') confirmAddShortcut(); });
+        document.getElementById('shortcut-name-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') confirmAddShortcut(); });
 
         document.getElementById('search-input').addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
